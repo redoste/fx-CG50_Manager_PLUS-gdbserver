@@ -1,0 +1,9 @@
+﻿---
+BasedOnStyle: Chromium
+ColumnLimit: '120'
+ContinuationIndentWidth: '8'
+IndentWidth: '8'
+TabWidth: '8'
+UseTab: Always
+
+...

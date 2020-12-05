@@ -1,0 +1,43 @@
+root = .
+src = $root/src
+obj = $root/obj
+
+cross-prefix = i686-w64-mingw32-
+cc = $cross-prefix"gcc"
+ld = $cc
+as = "nasm"
+
+cflags = -O2 -Wall -Wextra -Werror -pedantic -I$root/include/ -fdiagnostics-color=always -DWIN32_LEAN_AND_MEAN
+aflags = -f elf32
+lflags = -shared -s -static-libgcc -lws2_32
+
+rule cc
+        command = $cc -MMD -MT $out -MF $out.d $cflags -c $in -o $out
+        description = CC $out
+        depfile = $out.d
+
+rule as
+        command = $as -MT $out -MD $out.d $aflags $in -o $out
+        description = AS $out
+        depfile = $out.d
+
+rule ld
+        command = $ld $in $lflags -o $out
+        description = LD $out
+
+build $obj/break.o: cc $src/break.c
+build $obj/break_asm.o: as $src/break.asm
+build $obj/emulator.o: cc $src/emulator.c
+build $obj/emulator_asm.o: as $src/emulator.asm
+build $obj/gdb.o: cc $src/gdb.c
+build $obj/main.o: cc $src/main.c
+
+build $obj/CPU73050.dll: ld $
+                         $obj/break.o $
+                         $obj/break_asm.o $
+                         $obj/emulator.o $
+                         $obj/emulator_asm.o $
+                         $obj/gdb.o $
+                         $obj/main.o
+
+# vim: set expandtab: ts=8 sw=8
