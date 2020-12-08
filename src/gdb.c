@@ -188,7 +188,7 @@ static int gdb_send_registers() {
 		htonl(emur->r5),   htonl(emur->r6),   htonl(emur->r7),	htonl(emur->r8),  htonl(emur->r9),
 		htonl(emur->r10),  htonl(emur->r11),  htonl(emur->r12), htonl(emur->r13), htonl(emur->r14),
 		htonl(emur->r15),  htonl(emur->pc),   htonl(emur->pr),	htonl(emur->gbr), htonl(emur->vbr),
-		htonl(0xDEADC0DE), htonl(0xDEADC0DE), htonl(emur->sr),
+		htonl(emur->mach), htonl(emur->macl), htonl(emur->sr),
 	};
 
 	char buf[(sizeof(gdbr) * 2) + 1];
@@ -199,19 +199,17 @@ static int gdb_send_registers() {
 	}
 	buf[sizeof(buf) - 1] = '\0';
 
-	memset(buf + (offsetof(struct gdb_registers, mach) * 2), 'x', 8);
-	memset(buf + (offsetof(struct gdb_registers, macl) * 2), 'x', 8);
 	return gdb_send_packet(buf, sizeof(buf) - 1);
 }
 
 // See sh_sh4_nofpu_register_name in gdb/sh-tdep.c in GDB source code
-#define GDB_REGISTER_ID_MAPPING(EMUR, NAME)                                                                    \
-	uint32_t* NAME[] = {&EMUR->r0,	&EMUR->r1,  &EMUR->r2, &EMUR->r3,  &EMUR->r4,  &EMUR->r5,  &EMUR->r6,  \
-			    &EMUR->r7,	&EMUR->r8,  &EMUR->r9, &EMUR->r10, &EMUR->r11, &EMUR->r12, &EMUR->r13, \
-			    &EMUR->r14, &EMUR->r15, &EMUR->pc, &EMUR->pr,  &EMUR->gbr, &EMUR->vbr, NULL,       \
-			    NULL,	&EMUR->sr,  NULL,      NULL,	   NULL,       NULL,	   NULL,       \
-			    NULL,	NULL,	    NULL,      NULL,	   NULL,       NULL,	   NULL,       \
-			    NULL,	NULL,	    NULL,      NULL,	   NULL,       NULL,	   &EMUR->ssr, \
+#define GDB_REGISTER_ID_MAPPING(EMUR, NAME)                                                                      \
+	uint32_t* NAME[] = {&EMUR->r0,	 &EMUR->r1,  &EMUR->r2, &EMUR->r3,  &EMUR->r4,	&EMUR->r5,  &EMUR->r6,   \
+			    &EMUR->r7,	 &EMUR->r8,  &EMUR->r9, &EMUR->r10, &EMUR->r11, &EMUR->r12, &EMUR->r13,  \
+			    &EMUR->r14,	 &EMUR->r15, &EMUR->pc, &EMUR->pr,  &EMUR->gbr, &EMUR->vbr, &EMUR->mach, \
+			    &EMUR->macl, &EMUR->sr,  NULL,	NULL,	    NULL,	NULL,	    NULL,        \
+			    NULL,	 NULL,	     NULL,	NULL,	    NULL,	NULL,	    NULL,        \
+			    NULL,	 NULL,	     NULL,	NULL,	    NULL,	NULL,	    &EMUR->ssr,  \
 			    &EMUR->spc}
 
 static int gdb_handle_p_packet(char* buf) {
@@ -272,6 +270,8 @@ static int gdb_handle_G_packet(char* buf) {
 	emur->pr = ntohl(gdbr.pr);
 	emur->gbr = ntohl(gdbr.gbr);
 	emur->vbr = ntohl(gdbr.vbr);
+	emur->mach = ntohl(gdbr.mach);
+	emur->macl = ntohl(gdbr.macl);
 	emur->sr = ntohl(gdbr.sr);
 
 	return gdb_send_packet("OK", 2);

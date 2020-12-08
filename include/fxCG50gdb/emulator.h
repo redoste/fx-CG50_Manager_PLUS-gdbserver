@@ -66,12 +66,12 @@ struct registers {
 	uint32_t unk34;
 	uint32_t unk35;
 	uint32_t unk36;
+	uint32_t mach;
 	uint32_t unk37;
+	uint32_t macl;
 	uint32_t unk38;
-	uint32_t unk39;
-	uint32_t unk40;
 	uint32_t pr;
-	uint32_t unk41;
+	uint32_t unk39;
 	uint32_t pc;
 };
 
