@@ -286,7 +286,9 @@ static int gdb_handle_P_packet(char* buf) {
 	localbuf[2] = '\0';
 	unsigned char register_id = strtoul(localbuf, NULL, 16);
 
-	buf += 2;
+	// A kind of weird way to check if the register number has one or two digits and increment the pointer
+	// accordingly
+	buf += localbuf[1] == '=' ? 2 : 3;
 	strncpy(localbuf, buf, sizeof(localbuf));
 	localbuf[sizeof(localbuf) - 1] = '\0';
 	uint32_t register_value = strtoul(localbuf, NULL, 16);
