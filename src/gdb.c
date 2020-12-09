@@ -305,12 +305,12 @@ static int gdb_handle_P_packet(char* buf) {
 }
 
 static int gdb_handle_m_packet(char* buf) {
-	char address_hex[16], size_dec[16];
+	char address_hex[16], size_hex[16];
 	uint32_t address;
 	size_t size;
 
 	memset(address_hex, 0, sizeof(address_hex));
-	memset(size_dec, 0, sizeof(size_dec));
+	memset(size_hex, 0, sizeof(size_hex));
 
 	buf++;
 	for (size_t i = 0; i < sizeof(address_hex); i++) {
@@ -320,15 +320,15 @@ static int gdb_handle_m_packet(char* buf) {
 			break;
 	}
 	buf++;
-	for (size_t i = 0; i < sizeof(size_dec); i++) {
-		size_dec[i] = *buf;
+	for (size_t i = 0; i < sizeof(size_hex); i++) {
+		size_hex[i] = *buf;
 		buf++;
 		if (*buf == '\0')
 			break;
 	}
 
 	address = strtoul(address_hex, NULL, 16);
-	size = strtoul(size_dec, NULL, 10);
+	size = strtoul(size_hex, NULL, 16);
 
 	size_t outbuf_size = size * 2 + 1;
 	char* outbuf = malloc(outbuf_size);
