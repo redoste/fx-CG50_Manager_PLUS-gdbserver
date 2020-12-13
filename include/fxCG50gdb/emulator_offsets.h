@@ -8,18 +8,14 @@
 #include <stdint.h>
 
 static const size_t real_dll_registers_off = 0x675918;
+static const size_t real_dll_mmucr_off = 0x67be88;
+static const size_t real_dll_mmu_regions_off = 0xcefe0;
+static const size_t real_dll_mmu_regions_p4_off = 0x371020;
+static const size_t real_dll_mmu_no_translation_table = 0x34f3b8;
 static const size_t real_dll_instruction_table_off = 0x93190;
 static const size_t real_dll_instruction_table_break_index = 228;
 static const size_t real_dll_instruction_table_break_amount = 28;
 
 static const size_t real_dll_next_instruction_ptr_off = 0x368c10;
-static const size_t real_dll_read_byte_ptr_off = 0x368bf4;
-
-static const size_t real_dll_read_byte_exception_patch_off = 0x9f;
-static const uint8_t real_dll_read_byte_exception_patch[] = {
-	0x31, 0xc0,  // xor    eax,eax
-	0xb0, 0xff,  // mov    al,0xff
-	0xc3	     // ret
-};
-static const size_t real_dll_read_byte_expected_function = 0x27f62;
+static const size_t real_dll_mmu_translate_address = 0x21d8a;
 #endif

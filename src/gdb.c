@@ -7,6 +7,7 @@
 
 #include <fxCG50gdb/emulator.h>
 #include <fxCG50gdb/gdb.h>
+#include <fxCG50gdb/mmu.h>
 #include <fxCG50gdb/stdio.h>
 
 SOCKET gdb_client_socket = INVALID_SOCKET;
@@ -330,16 +331,20 @@ static int gdb_handle_m_packet(char* buf) {
 	address = strtoul(address_hex, NULL, 16);
 	size = strtoul(size_hex, NULL, 16);
 
+	uint8_t* outbuf = malloc(size);
+	mmu_read(address, outbuf, size);
+
 	size_t outbuf_size = size * 2 + 1;
-	char* outbuf = malloc(outbuf_size);
-	memset(outbuf, 0, outbuf_size);
+	char* outbuf_hex = malloc(outbuf_size);
+	memset(outbuf_hex, 0, outbuf_size);
 	static const char hex[] = "0123456789ABCDEF";
 	for (size_t i = 0; i < size; i++) {
-		uint8_t byte = real_cpu_read(address + i);
-		outbuf[(i * 2) + 0] = hex[(byte & 0xF0) >> 4];
-		outbuf[(i * 2) + 1] = hex[byte & 0x0F];
+		uint8_t byte = outbuf[i];
+		outbuf_hex[(i * 2) + 0] = hex[(byte & 0xF0) >> 4];
+		outbuf_hex[(i * 2) + 1] = hex[byte & 0x0F];
 	}
-	int err = gdb_send_packet(outbuf, outbuf_size - 1);
+	int err = gdb_send_packet(outbuf_hex, outbuf_size - 1);
+	free(outbuf_hex);
 	free(outbuf);
 	return err;
 }

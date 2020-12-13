@@ -79,13 +79,15 @@ typedef void*(__stdcall* real_DLDriver)();
 
 extern HINSTANCE real_cpu_dll;
 extern void* real_cpu_next_instruction_ptr;
-extern void* real_cpu_read_byte_ptr;
+extern void* real_cpu_translate_address_ptr;
 
 struct registers* real_cpu_registers();
 void real_cpu_hijack_break();
-uint8_t real_cpu_read(uint32_t address);
-uint8_t real_cpu_read_real_context(uint32_t address);
 real_DLDriver real_DLDriverInfo();
 real_DLDriver real_DLDriverInfoCall();
+uint32_t real_cpu_mmucr();
+struct mmu_region* real_cpu_mmu_regions();
+struct mmu_region* real_cpu_mmu_regions_p4();
+uint32_t* real_cpu_mmu_no_translation_table();
 
 #endif

@@ -10,7 +10,7 @@
 
 HINSTANCE real_cpu_dll;
 void* real_cpu_next_instruction_ptr;
-void* real_cpu_read_byte_ptr;
+void* real_cpu_translate_address_ptr;
 
 struct registers* real_cpu_registers() {
 	return (struct registers*)((uint8_t*)real_cpu_dll + real_dll_registers_off);
@@ -26,29 +26,7 @@ void real_cpu_hijack_break() {
 	fxCG50gdb_printf("Break hijacked. Now at 0x%p\n", instruction_table[real_dll_instruction_table_break_index]);
 
 	real_cpu_next_instruction_ptr = ((uint8_t*)real_cpu_dll + real_dll_next_instruction_ptr_off);
-}
-
-uint8_t real_cpu_read(uint32_t address) {
-	real_cpu_read_byte_ptr = ((uint8_t*)real_cpu_dll + real_dll_read_byte_ptr_off);
-
-	// A patch is applied to prevent the MMU to trigger exceptions when reading invalid addresses
-	// For the moment this patch only works when a certain function is used to read
-	uint8_t* function = *((uint8_t**)real_cpu_read_byte_ptr);
-	assert(function == ((uint8_t*)real_cpu_dll + real_dll_read_byte_expected_function));
-
-	size_t patch_size = sizeof(real_dll_read_byte_exception_patch);
-	uint8_t* backup = malloc(patch_size);
-	uint8_t* to_patch = function + real_dll_read_byte_exception_patch_off;
-	DWORD old_protection;
-
-	VirtualProtect(to_patch, patch_size, PAGE_EXECUTE_READWRITE, &old_protection);
-	memcpy(backup, to_patch, patch_size);
-	memcpy(to_patch, real_dll_read_byte_exception_patch, patch_size);
-	uint8_t ret = real_cpu_read_real_context(address);
-	memcpy(to_patch, backup, patch_size);
-	VirtualProtect(to_patch, patch_size, old_protection, &old_protection);
-	free(backup);
-	return ret;
+	real_cpu_translate_address_ptr = ((uint8_t*)real_cpu_dll + real_dll_mmu_translate_address);
 }
 
 #pragma GCC diagnostic push
@@ -61,3 +39,19 @@ real_DLDriver real_DLDriverInfoCall() {
 	return (real_DLDriver)GetProcAddress(real_cpu_dll, "_DLDriverInfoCall@0");
 }
 #pragma GCC diagnostic pop
+
+uint32_t real_cpu_mmucr() {
+	return *(uint32_t*)((uint8_t*)real_cpu_dll + real_dll_mmucr_off);
+}
+
+struct mmu_region* real_cpu_mmu_regions() {
+	return (struct mmu_region*)((uint8_t*)real_cpu_dll + real_dll_mmu_regions_off);
+}
+
+struct mmu_region* real_cpu_mmu_regions_p4() {
+	return (struct mmu_region*)((uint8_t*)real_cpu_dll + real_dll_mmu_regions_p4_off);
+}
+
+uint32_t* real_cpu_mmu_no_translation_table() {
+	return (uint32_t*)((uint8_t*)real_cpu_dll + real_dll_mmu_no_translation_table);
+}
