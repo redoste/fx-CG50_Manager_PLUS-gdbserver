@@ -33,6 +33,19 @@ uint32_t mmu_translate_address(uint32_t virtual_address) {
 	return ret;
 }
 
+static void mmu_update_instruction_cache(uint32_t* dword_ptr) {
+	real_decode_instruction decode_instruction = real_cpu_decode_instruction();
+	uint16_t* word_ptr = (uint16_t*)dword_ptr;
+	uint16_t* cache_ptr = (uint16_t*)((uint8_t*)dword_ptr + 0x1000);
+	for (size_t i = 0; i < 2; i++) {
+		cache_ptr[i] = (decode_instruction(word_ptr[i]) & 0xFF) << 8;
+#ifdef MMU_DEBUG
+		fxCG50gdb_printf("mmu_update_instruction_cache : i@0x%08X ic@0x%08X i=0x%02X ic=0x%02X\n", &word_ptr[i],
+				 &cache_ptr[i], word_ptr[i], cache_ptr[i]);
+#endif
+	}
+}
+
 // This is stored as an array of little-endian 32 bits values, we should read them separately and convert them back to
 // big-endian
 static uint32_t mmu_read_physical_dword(uint32_t physical_address) {
@@ -41,9 +54,9 @@ static uint32_t mmu_read_physical_dword(uint32_t physical_address) {
 		struct mmu_region* region = mmu_get_region(physical_address);
 		uint32_t* data = (uint32_t*)((uint32_t)region->data & 0xfffffffc);
 		void* function = region->module_functions[13];
-		uint32_t value = mmu_read_dword_real_context(physical_address, physical_address,
-							     &data[(physical_address & 0xfff) >> 2],
-							     region->module_functions, function);
+		uint32_t value = mmu_rw_dword_real_context(physical_address, physical_address, 0,
+							   &data[(physical_address & 0xfff) >> 2],
+							   region->module_functions, function);
 #ifdef MMU_DEBUG
 		fxCG50gdb_printf("mmu_read_physical_dword : pa=0x%08X d@0x%08X f@0x%08X v=0x%08X\n", physical_address,
 				 data, function, value);
@@ -59,8 +72,38 @@ static uint32_t mmu_read_physical_dword(uint32_t physical_address) {
 	return value;
 }
 
+static void mmu_write_physical_dword(uint32_t physical_address, uint32_t value) {
+	assert((physical_address & 3) == 0);
+	if (physical_address > MMU_P4_START) {
+		struct mmu_region* region = mmu_get_region(physical_address);
+		uint32_t* data = (uint32_t*)((uint32_t)region->data & 0xfffffffc);
+		uint32_t* dword_ptr = &data[(physical_address & 0xfff) >> 2];
+		void* function = region->module_functions[17];
+		mmu_rw_dword_real_context(physical_address, physical_address, value, dword_ptr,
+					  region->module_functions, function);
+		// We shouldn't update the instruction cache, the module's function will do it correctly
+#ifdef MMU_DEBUG
+		fxCG50gdb_printf("mmu_write_physical_dword : pa=0x%08X d@0x%08X f@0x%08X v=0x%08X\n", physical_address,
+				 data, function, value);
+#endif
+		return;
+	}
+
+	uint32_t* data = (uint32_t*)((uint32_t)mmu_get_region(physical_address)->data & 0xfffffffc);
+	if (data != NULL)
+		data[(physical_address & 0xfff) >> 2] = value;
+#ifdef MMU_DEBUG
+	fxCG50gdb_printf("mmu_write_physical_dword : pa=0x%08X d@0x%08X v=0x%08X\n", physical_address, data, value);
+#endif
+	mmu_update_instruction_cache(&data[(physical_address & 0xfff) >> 2]);
+}
+
 static uint32_t mmu_read_virtual_dword(uint32_t virtual_address) {
 	return mmu_read_physical_dword(mmu_translate_address(virtual_address));
+}
+
+static void mmu_write_virtual_dword(uint32_t virtual_address, uint32_t value) {
+	mmu_write_physical_dword(mmu_translate_address(virtual_address), value);
 }
 
 void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size) {
@@ -84,5 +127,49 @@ void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size) {
 	fxCG50gdb_printf("mmu_read : lb@0x%08X cs@0x%08X s=%d\n", local_buf, copy_start, size);
 #endif
 	memcpy(buf, copy_start, size);
+	free(local_buf);
+}
+
+void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size) {
+	uint32_t aligned_address = virtual_address & 0xfffffffc;
+	// Kinda ugly but 16 should be enough to take into account the alignment of the address and size rounding
+	uint8_t* local_buf = malloc(size + 16);
+	memcpy(local_buf + (virtual_address - aligned_address), buf, size);
+
+	// There is probably a better way to do this but it works
+	// We just fill local_buf with the extra bytes before and after the provided ones to make everything aligned
+	if (virtual_address != aligned_address) {
+		uint32_t old_value = htonl(mmu_read_virtual_dword(aligned_address));
+		uint8_t* b = (uint8_t*)&old_value;
+		size_t i = 0;
+		for (; (unsigned int)(b - (uint8_t*)&old_value) < virtual_address - aligned_address; b++, i++) {
+			local_buf[i] = *b;
+		}
+	}
+	size_t high_part_size = (virtual_address - aligned_address) + size;
+	if (high_part_size % 4 != 0) {
+		uint32_t last_aligned_address = (virtual_address + size) & 0xfffffffc;
+		uint32_t old_value = htonl(mmu_read_virtual_dword(last_aligned_address));
+		uint8_t* b = (uint8_t*)&old_value;
+		b += high_part_size % 4;
+		size_t i = high_part_size;
+		for (; (unsigned int)(b - (uint8_t*)&old_value) < 4; b++, i++) {
+			local_buf[i] = *b;
+		}
+	}
+
+#ifdef MMU_DEBUG
+	fxCG50gdb_printf("mmu_write : lb@0x%08X va=0x%08X aa=0x%08X s=%d\n", local_buf, virtual_address,
+			 aligned_address, size);
+#endif
+	uint32_t* local_buf_as_dword = (uint32_t*)local_buf;
+	size_t i = 0;
+	uint32_t a = aligned_address;
+	for (; a < (virtual_address + size); i++, a += 4) {
+#ifdef MMU_DEBUG
+		fxCG50gdb_printf("mmu_write : a=%08X i=%d\n", a, i);
+#endif
+		mmu_write_virtual_dword(a, ntohl(local_buf_as_dword[i]));
+	}
 	free(local_buf);
 }

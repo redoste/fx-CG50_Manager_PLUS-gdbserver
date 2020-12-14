@@ -349,6 +349,50 @@ static int gdb_handle_m_packet(char* buf) {
 	return err;
 }
 
+static int gdb_handle_M_packet(char* buf) {
+	char address_hex[16], size_hex[16];
+	uint32_t address;
+	size_t size;
+
+	memset(address_hex, 0, sizeof(address_hex));
+	memset(size_hex, 0, sizeof(size_hex));
+
+	buf++;
+	for (size_t i = 0; i < sizeof(address_hex); i++) {
+		address_hex[i] = *buf;
+		buf++;
+		if (*buf == ',')
+			break;
+	}
+	buf++;
+	for (size_t i = 0; i < sizeof(size_hex); i++) {
+		size_hex[i] = *buf;
+		buf++;
+		if (*buf == ':')
+			break;
+	}
+	buf++;
+
+	address = strtoul(address_hex, NULL, 16);
+	size = strtoul(size_hex, NULL, 16);
+	assert(size > 0);
+
+	assert(strlen(buf) >= size * 2);
+	uint8_t* inbuf = malloc(size);
+
+	for (size_t i = 0; i < size; i++) {
+		char byte_hex[3];
+		byte_hex[0] = buf[(i * 2) + 0];
+		byte_hex[1] = buf[(i * 2) + 1];
+		byte_hex[2] = '\0';
+		inbuf[i] = strtoul(byte_hex, NULL, 16);
+	}
+
+	mmu_write(address, inbuf, size);
+	free(inbuf);
+	return gdb_send_packet("OK", 2);
+}
+
 void gdb_main(bool program_started) {
 	char buf[256];
 	size_t packet_len;
@@ -403,7 +447,13 @@ void gdb_main(bool program_started) {
 					assert(gdb_handle_P_packet(buf) >= 0);
 				break;
 
-			// case 'M' Write memory
+			case 'M':
+				if (!program_started)
+					assert(gdb_send_packet(NULL, 0) >= 0);
+				else
+					assert(gdb_handle_M_packet(buf) >= 0);
+				break;
+
 			// case 's' Single step
 			case 'c':
 				return;

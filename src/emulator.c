@@ -55,3 +55,10 @@ struct mmu_region* real_cpu_mmu_regions_p4() {
 uint32_t* real_cpu_mmu_no_translation_table() {
 	return (uint32_t*)((uint8_t*)real_cpu_dll + real_dll_mmu_no_translation_table);
 }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+real_decode_instruction real_cpu_decode_instruction() {
+	return (real_decode_instruction)((uint8_t*)real_cpu_dll + real_dll_decode_instruction_off);
+}
+#pragma GCC diagnostic pop

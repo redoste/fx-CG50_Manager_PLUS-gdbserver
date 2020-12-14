@@ -18,4 +18,5 @@ static const size_t real_dll_instruction_table_break_amount = 28;
 
 static const size_t real_dll_next_instruction_ptr_off = 0x368c10;
 static const size_t real_dll_mmu_translate_address = 0x21d8a;
+static const size_t real_dll_decode_instruction_off = 0x16050;
 #endif

@@ -76,6 +76,7 @@ struct registers {
 };
 
 typedef void*(__stdcall* real_DLDriver)();
+typedef uint16_t(__stdcall* real_decode_instruction)(uint16_t);
 
 extern HINSTANCE real_cpu_dll;
 extern void* real_cpu_next_instruction_ptr;
@@ -89,5 +90,6 @@ uint32_t real_cpu_mmucr();
 struct mmu_region* real_cpu_mmu_regions();
 struct mmu_region* real_cpu_mmu_regions_p4();
 uint32_t* real_cpu_mmu_no_translation_table();
+real_decode_instruction real_cpu_decode_instruction();
 
 #endif
