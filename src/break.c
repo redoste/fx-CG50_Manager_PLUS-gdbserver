@@ -27,4 +27,9 @@ void break_jti_main(struct break_state* context) {
 		break_jti_original_function_ptr = real_cpu_jti_table_wtmmu_backup[context->eax & 0x7f];
 	else
 		break_jti_original_function_ptr = real_cpu_jti_table_nommu_backup[context->eax & 0x7f];
+
+	if (gdb_wants_step) {
+		gdb_wants_step = false;
+		break_main(context);
+	}
 }

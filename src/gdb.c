@@ -11,6 +11,7 @@
 #include <fxCG50gdb/stdio.h>
 
 SOCKET gdb_client_socket = INVALID_SOCKET;
+bool gdb_wants_step = false;
 
 static int gdb_init_socket() {
 	int err;
@@ -454,7 +455,10 @@ void gdb_main(bool program_started) {
 					assert(gdb_handle_M_packet(buf) >= 0);
 				break;
 
-			// case 's' Single step
+			case 's':
+				gdb_wants_step = true;
+				return;
+
 			case 'c':
 				return;
 

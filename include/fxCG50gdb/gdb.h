@@ -46,5 +46,6 @@ int gdb_send_packet(char* buf, size_t buflen);
 void gdb_main(bool program_started);
 
 extern SOCKET gdb_client_socket;
+extern bool gdb_wants_step;
 
 #endif
