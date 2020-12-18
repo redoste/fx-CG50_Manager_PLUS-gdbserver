@@ -20,3 +20,11 @@ void break_main(struct break_state* context) {
 
 	gdb_main(true);
 }
+
+void* break_jti_original_function_ptr;
+void break_jti_main(struct break_state* context) {
+	if (context->eax & 0x80)
+		break_jti_original_function_ptr = real_cpu_jti_table_wtmmu_backup[context->eax & 0x7f];
+	else
+		break_jti_original_function_ptr = real_cpu_jti_table_nommu_backup[context->eax & 0x7f];
+}

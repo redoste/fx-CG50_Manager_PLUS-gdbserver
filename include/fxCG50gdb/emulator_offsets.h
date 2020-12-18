@@ -15,6 +15,9 @@ static const size_t real_dll_mmu_no_translation_table = 0x34f3b8;
 static const size_t real_dll_instruction_table_off = 0x93190;
 static const size_t real_dll_instruction_table_break_index = 228;
 static const size_t real_dll_instruction_table_break_amount = 28;
+static const size_t real_dll_jmp_to_instruction_table_wtmmu_off = 0x94390;
+static const size_t real_dll_jmp_to_instruction_table_nommu_off = 0x94328;
+static const size_t real_dll_jmp_to_instruction_table_amount = 11;
 
 static const size_t real_dll_next_instruction_ptr_off = 0x368c10;
 static const size_t real_dll_mmu_translate_address = 0x21d8a;

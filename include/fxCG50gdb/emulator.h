@@ -81,6 +81,8 @@ typedef uint16_t(__stdcall* real_decode_instruction)(uint16_t);
 extern HINSTANCE real_cpu_dll;
 extern void* real_cpu_next_instruction_ptr;
 extern void* real_cpu_translate_address_ptr;
+extern void** real_cpu_jti_table_nommu_backup;
+extern void** real_cpu_jti_table_wtmmu_backup;
 
 struct registers* real_cpu_registers();
 void real_cpu_init();

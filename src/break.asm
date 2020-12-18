@@ -2,7 +2,9 @@ bits 32
 section .text
 
 extern _break_main
+extern _break_jti_main
 extern _real_cpu_next_instruction_ptr
+extern _break_jti_original_function_ptr
 
 global _break_handler
 _break_handler:
@@ -44,3 +46,19 @@ _break_handler:
 
 	mov eax, [_real_cpu_next_instruction_ptr]
 	jmp [eax]
+
+global _break_jti_handler
+_break_jti_handler:
+	pushad
+	mov ebp, esp
+
+	push ebp
+
+	; Same stack setup as _break_handler
+
+	call _break_jti_main
+
+	mov esp, ebp
+	popad
+
+	jmp [_break_jti_original_function_ptr]
