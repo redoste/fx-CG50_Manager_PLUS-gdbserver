@@ -16,7 +16,7 @@ struct registers* real_cpu_registers() {
 	return (struct registers*)((uint8_t*)real_cpu_dll + real_dll_registers_off);
 }
 
-void real_cpu_hijack_break() {
+static void real_cpu_hijack_break() {
 	void (**instruction_table)() = (void (**)())((uint8_t*)real_cpu_dll + real_dll_instruction_table_off);
 	fxCG50gdb_printf("Hijacking break... Before at 0x%p\n",
 			 instruction_table[real_dll_instruction_table_break_index]);
@@ -24,6 +24,10 @@ void real_cpu_hijack_break() {
 		instruction_table[real_dll_instruction_table_break_index + i] = &break_handler;
 	}
 	fxCG50gdb_printf("Break hijacked. Now at 0x%p\n", instruction_table[real_dll_instruction_table_break_index]);
+}
+
+void real_cpu_init(){
+	real_cpu_hijack_break();
 
 	real_cpu_next_instruction_ptr = ((uint8_t*)real_cpu_dll + real_dll_next_instruction_ptr_off);
 	real_cpu_translate_address_ptr = ((uint8_t*)real_cpu_dll + real_dll_mmu_translate_address);

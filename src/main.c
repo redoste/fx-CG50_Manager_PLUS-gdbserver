@@ -34,7 +34,7 @@ void* __stdcall _DLDriverInfoCall() {
 	void* r = f();
 	fxCG50gdb_printf("Proxy DLDriverInfoCall f = 0x%p, r = 0x%p\n", f, r);
 
-	real_cpu_hijack_break();
+	real_cpu_init();
 	gdb_start();
 	return r;
 }

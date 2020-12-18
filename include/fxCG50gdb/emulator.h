@@ -83,7 +83,7 @@ extern void* real_cpu_next_instruction_ptr;
 extern void* real_cpu_translate_address_ptr;
 
 struct registers* real_cpu_registers();
-void real_cpu_hijack_break();
+void real_cpu_init();
 real_DLDriver real_DLDriverInfo();
 real_DLDriver real_DLDriverInfoCall();
 uint32_t real_cpu_mmucr();
