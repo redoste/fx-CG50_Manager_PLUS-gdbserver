@@ -21,6 +21,29 @@ void break_main(struct break_state* context) {
 	gdb_main(true);
 }
 
+/* There are two ways to break :
+ * II  : Inside Instruction  : Used by TRAPA and BRK instructions
+ * JTI : Jump to instruction : Used by hardware breakpoints and single-stepping
+ */
+
+void* break_ii_next_function_ptr;
+void break_ii_main(struct break_state* context) {
+	uint16_t instruction = *(uint16_t*)context->edi;
+	fxCG50gdb_printf("BREAK with II : instruction = 0x%04X\n", instruction);
+	break_main(context);
+	if (instruction >> 8 == 0xC3) {
+		instruction = *(uint16_t*)context->edi;
+		uint8_t instruction_index = *(uint16_t*)((uint8_t*)context->edi + 0x1000) >> 8;
+		fxCG50gdb_printf(
+			"break_ii_main : resuming from TRAPA with new instruction = 0x%04X instruction_index = "
+			"0x%02X\n",
+			instruction, instruction_index);
+		break_ii_next_function_ptr = real_cpu_instruction_table_function(instruction_index);
+	} else {
+		break_ii_next_function_ptr = real_cpu_next_instruction_function();
+	}
+}
+
 void* break_jti_original_function_ptr;
 void break_jti_main(struct break_state* context) {
 	if (context->eax & 0x80)
@@ -30,6 +53,7 @@ void break_jti_main(struct break_state* context) {
 
 	if (gdb_wants_step) {
 		gdb_wants_step = false;
+		fxCG50gdb_printf("BREAK with JTI : gdb_wants_step == true\n");
 		break_main(context);
 		return;
 	}
@@ -40,6 +64,7 @@ void break_jti_main(struct break_state* context) {
 	if (gdb_breakpoints[prefix] == NULL)
 		return;
 	if (gdb_breakpoints[prefix][suffix >> 3] & (1 << (suffix & 7))) {
+		fxCG50gdb_printf("BREAK with JTI : breakpoint at 0x%08X\n", context->ebp);
 		break_main(context);
 		return;
 	}

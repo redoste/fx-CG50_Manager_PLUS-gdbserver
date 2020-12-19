@@ -9,7 +9,6 @@
 #include <fxCG50gdb/stdio.h>
 
 HINSTANCE real_cpu_dll;
-void* real_cpu_next_instruction_ptr;
 void* real_cpu_translate_address_ptr;
 
 struct registers* real_cpu_registers() {
@@ -21,9 +20,13 @@ static void real_cpu_hijack_break() {
 	fxCG50gdb_printf("Hijacking break... Before at 0x%p\n",
 			 instruction_table[real_dll_instruction_table_break_index]);
 	for (size_t i = 0; i < real_dll_instruction_table_break_amount; i++) {
-		instruction_table[real_dll_instruction_table_break_index + i] = &break_handler;
+		instruction_table[real_dll_instruction_table_break_index + i] = &break_ii_handler;
 	}
 	fxCG50gdb_printf("Break hijacked. Now at 0x%p\n", instruction_table[real_dll_instruction_table_break_index]);
+	fxCG50gdb_printf("Hijacking trapa... Before at 0x%p\n",
+			 instruction_table[real_dll_instruction_table_trapa_index]);
+	instruction_table[real_dll_instruction_table_trapa_index] = &break_ii_handler;
+	fxCG50gdb_printf("Trapa hijacked. Now at 0x%p\n", instruction_table[real_dll_instruction_table_trapa_index]);
 }
 
 void** real_cpu_jti_table_nommu_backup;
@@ -77,7 +80,6 @@ void real_cpu_init() {
 	real_cpu_hijack_break();
 	real_cpu_hijack_jmp_to_instruction();
 
-	real_cpu_next_instruction_ptr = ((uint8_t*)real_cpu_dll + real_dll_next_instruction_ptr_off);
 	real_cpu_translate_address_ptr = ((uint8_t*)real_cpu_dll + real_dll_mmu_translate_address);
 }
 
@@ -114,3 +116,13 @@ real_decode_instruction real_cpu_decode_instruction() {
 	return (real_decode_instruction)((uint8_t*)real_cpu_dll + real_dll_decode_instruction_off);
 }
 #pragma GCC diagnostic pop
+
+void* real_cpu_next_instruction_function() {
+	void** p = (void**)((uint8_t*)real_cpu_dll + real_dll_next_instruction_ptr_off);
+	return *p;
+}
+
+void* real_cpu_instruction_table_function(size_t index) {
+	void** instruction_table = (void**)((uint8_t*)real_cpu_dll + real_dll_instruction_table_off);
+	return instruction_table[index];
+}

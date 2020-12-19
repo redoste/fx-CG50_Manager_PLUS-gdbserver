@@ -14,11 +14,13 @@ struct break_state {
 	uint32_t eax;
 };
 
+extern void* break_ii_next_function_ptr;
 extern void* break_jti_original_function_ptr;
 
-void break_handler();
+void break_ii_handler();
 void break_jti_handler();
 void break_main(struct break_state*);
+void break_ii_main(struct break_state*);
 void break_jti_main(struct break_state*);
 
 #endif
