@@ -31,5 +31,16 @@ void break_jti_main(struct break_state* context) {
 	if (gdb_wants_step) {
 		gdb_wants_step = false;
 		break_main(context);
+		return;
+	}
+
+	uint32_t pc = context->ebp >> 1;
+	uint8_t prefix = pc >> 24;
+	uint32_t suffix = pc & 0xFFFFFF;
+	if (gdb_breakpoints[prefix] == NULL)
+		return;
+	if (gdb_breakpoints[prefix][suffix >> 3] & (1 << (suffix & 7))) {
+		break_main(context);
+		return;
 	}
 }

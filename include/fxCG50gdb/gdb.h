@@ -47,5 +47,6 @@ void gdb_main(bool program_started);
 
 extern SOCKET gdb_client_socket;
 extern bool gdb_wants_step;
+extern uint8_t* gdb_breakpoints[128];
 
 #endif

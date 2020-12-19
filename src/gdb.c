@@ -69,6 +69,38 @@ void gdb_start() {
 	gdb_main(false);
 }
 
+uint8_t* gdb_breakpoints[128] = {NULL};
+static void gdb_add_breakpoint(uint32_t address) {
+	fxCG50gdb_printf("gdb_add_breakpoint : New breakpoint at 0x%08X (bp@0x%08X)\n", address, gdb_breakpoints);
+	address = address >> 1;
+	uint8_t prefix = address >> 24;
+	uint32_t suffix = address & 0xFFFFFF;
+	if (gdb_breakpoints[prefix] == NULL) {
+		// We use about 2MiB per region, we should probably found an other fast way to store/use breakpoints but
+		// less memory intensive
+		gdb_breakpoints[prefix] = malloc(0x1000000 >> 3);
+		memset(gdb_breakpoints[prefix], 0, 0x1000000 >> 3);
+	}
+	gdb_breakpoints[prefix][suffix >> 3] |= 1 << (suffix & 7);
+	fxCG50gdb_printf("gdb_add_breakpoint : address=0x%08X p=0x%02X s=0x%06X bp@0x%08X bp=0x%02X\n", address, prefix,
+			 suffix, &gdb_breakpoints[prefix][suffix >> 3], gdb_breakpoints[prefix][suffix >> 3]);
+}
+
+static void gdb_del_breakpoint(uint32_t address) {
+	fxCG50gdb_printf("gdb_del_breakpoint : Remove breakpoint at 0x%08X (bp@0x%08X)\n", address, gdb_breakpoints);
+	address = address >> 1;
+	uint8_t prefix = address >> 24;
+	uint32_t suffix = address & 0xFFFFFF;
+	if (gdb_breakpoints[prefix] != NULL) {
+		gdb_breakpoints[prefix][suffix >> 3] &= ~(1 << (suffix & 7));
+		fxCG50gdb_printf("gdb_del_breakpoint : address=0x%08X p=0x%02X s=0x%06X bp@0x%08X bp=0x%02X\n", address,
+				 prefix, suffix, &gdb_breakpoints[prefix][suffix >> 3],
+				 gdb_breakpoints[prefix][suffix >> 3]);
+	}
+	// Currently we don't garbage collect gdb_breakpoints, if the user puts and delete a lot of breakpoints, this
+	// might be heavy on memory usage
+}
+
 int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	char read_char;
 	int read_size;
@@ -394,6 +426,47 @@ static int gdb_handle_M_packet(char* buf) {
 	return gdb_send_packet("OK", 2);
 }
 
+static int gdb_handle_Zz_packet(char* buf) {
+	bool delete = (*buf) == 'z';
+	buf++;
+	if (*buf != '1')
+		return gdb_send_packet(NULL, 0);
+	buf += 2;
+
+	char address_hex[16], kind_hex[16];
+	uint32_t address;
+	unsigned int kind;
+
+	memset(address_hex, 0, sizeof(address_hex));
+	memset(kind_hex, 0, sizeof(kind_hex));
+
+	for (size_t i = 0; i < sizeof(address_hex); i++) {
+		address_hex[i] = *buf;
+		buf++;
+		if (*buf == ',')
+			break;
+	}
+	buf++;
+	for (size_t i = 0; i < sizeof(kind_hex); i++) {
+		kind_hex[i] = *buf;
+		buf++;
+		if (*buf == ';' || *buf == '\0')
+			break;
+	}
+
+	address = strtoul(address_hex, NULL, 16);
+	kind = strtoul(kind_hex, NULL, 16);
+	assert(kind == 2);
+
+	// We do not support different kinds nor conditions
+
+	if (delete)
+		gdb_del_breakpoint(address);
+	else
+		gdb_add_breakpoint(address);
+	return gdb_send_packet("OK", 2);
+}
+
 void gdb_main(bool program_started) {
 	char buf[256];
 	size_t packet_len;
@@ -453,6 +526,11 @@ void gdb_main(bool program_started) {
 					assert(gdb_send_packet(NULL, 0) >= 0);
 				else
 					assert(gdb_handle_M_packet(buf) >= 0);
+				break;
+
+			case 'Z':
+			case 'z':
+				assert(gdb_handle_Zz_packet(buf) >= 0);
 				break;
 
 			case 's':
