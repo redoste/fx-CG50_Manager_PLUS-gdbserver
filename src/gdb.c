@@ -12,6 +12,7 @@
 #include <fxCG50gdb/stdio.h>
 
 SOCKET gdb_client_socket = INVALID_SOCKET;
+static HANDLE gdb_client_socket_mutex;
 bool gdb_wants_step = false;
 
 static int gdb_init_socket() {
@@ -60,14 +61,24 @@ static int gdb_init_socket() {
 	return 0;
 }
 
-void gdb_start() {
+static unsigned long __stdcall gdb_start_thread(void* lpParameter) {
+	(void)lpParameter;
+	assert(WaitForSingleObject(gdb_client_socket_mutex, INFINITE) == WAIT_OBJECT_0);
+
 	if (gdb_init_socket() < 0) {
 		WSACleanup();
 		ExitProcess(-1);
-		return;
+		return 0;
 	}
 
 	gdb_main(false);
+	assert(ReleaseMutex(gdb_client_socket_mutex));
+	return 0;
+}
+
+void gdb_start() {
+	gdb_client_socket_mutex = CreateMutexA(NULL, FALSE, NULL);
+	CreateThread(NULL, 0, &gdb_start_thread, NULL, 0, NULL);
 }
 
 uint8_t* gdb_breakpoints[128] = {NULL};
@@ -471,8 +482,10 @@ static int gdb_handle_Zz_packet(char* buf) {
 void gdb_main(bool program_started) {
 	char buf[256];
 	size_t packet_len;
-	if (program_started)
+	if (program_started) {
+		assert(WaitForSingleObject(gdb_client_socket_mutex, INFINITE) == WAIT_OBJECT_0);
 		assert(gdb_send_signal(GDB_SIGNAL_TRAP) >= 0);
+	}
 	for (;;) {
 		assert(gdb_recv_packet(buf, sizeof(buf), &packet_len) >= 0);
 		if (packet_len <= 0)
@@ -536,9 +549,10 @@ void gdb_main(bool program_started) {
 
 			case 's':
 				gdb_wants_step = true;
-				return;
-
+				__attribute__((fallthrough));
 			case 'c':
+				if (program_started)
+					assert(ReleaseMutex(gdb_client_socket_mutex));
 				return;
 
 			default:
