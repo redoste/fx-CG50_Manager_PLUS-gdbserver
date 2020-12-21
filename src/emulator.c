@@ -17,16 +17,18 @@ struct registers* real_cpu_registers() {
 
 static void real_cpu_hijack_break() {
 	void (**instruction_table)() = (void (**)())((uint8_t*)real_cpu_dll + real_dll_instruction_table_off);
-	fxCG50gdb_printf("Hijacking break... Before at 0x%p\n",
-			 instruction_table[real_dll_instruction_table_break_index]);
+	fxCG50gdb_printf("Hijacking break... Before at 0x%08X\n",
+			 (uint32_t)instruction_table[real_dll_instruction_table_break_index]);
 	for (size_t i = 0; i < real_dll_instruction_table_break_amount; i++) {
 		instruction_table[real_dll_instruction_table_break_index + i] = &break_ii_handler;
 	}
-	fxCG50gdb_printf("Break hijacked. Now at 0x%p\n", instruction_table[real_dll_instruction_table_break_index]);
-	fxCG50gdb_printf("Hijacking trapa... Before at 0x%p\n",
-			 instruction_table[real_dll_instruction_table_trapa_index]);
+	fxCG50gdb_printf("Break hijacked. Now at 0x%08X\n",
+			 (uint32_t)instruction_table[real_dll_instruction_table_break_index]);
+	fxCG50gdb_printf("Hijacking trapa... Before at 0x%08X\n",
+			 (uint32_t)instruction_table[real_dll_instruction_table_trapa_index]);
 	instruction_table[real_dll_instruction_table_trapa_index] = &break_ii_handler;
-	fxCG50gdb_printf("Trapa hijacked. Now at 0x%p\n", instruction_table[real_dll_instruction_table_trapa_index]);
+	fxCG50gdb_printf("Trapa hijacked. Now at 0x%08X\n",
+			 (uint32_t)instruction_table[real_dll_instruction_table_trapa_index]);
 }
 
 void** real_cpu_jti_table_nommu_backup;

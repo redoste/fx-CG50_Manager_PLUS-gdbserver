@@ -14,7 +14,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved) {
 		fxCG50gdb_printf("Fake CPU dll loaded.\n");
 		real_cpu_dll = LoadLibraryA("CPU73050.real.dll");
 		if (real_cpu_dll == NULL) {
-			fxCG50gdb_printf("Unable to load CPU73050.real.dll E:%d\n", GetLastError());
+			fxCG50gdb_printf("Unable to load CPU73050.real.dll E:%lu\n", GetLastError());
 			return FALSE;
 		}
 		fxCG50gdb_printf("CPU73050.real.dll loaded at 0x%p\n", (void*)real_cpu_dll);
@@ -25,14 +25,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved) {
 void* __stdcall _DLDriverInfo() {
 	real_DLDriver f = real_DLDriverInfo();
 	void* r = f();
-	fxCG50gdb_printf("Proxy DLDriverInfo f = 0x%p, r = 0x%p\n", f, r);
+	fxCG50gdb_printf("Proxy DLDriverInfo f = 0x%08X, r = 0x%p\n", (uint32_t)f, r);
 	return r;
 }
 
 void* __stdcall _DLDriverInfoCall() {
 	real_DLDriver f = real_DLDriverInfoCall();
 	void* r = f();
-	fxCG50gdb_printf("Proxy DLDriverInfoCall f = 0x%p, r = 0x%p\n", f, r);
+	fxCG50gdb_printf("Proxy DLDriverInfoCall f = 0x%08X, r = 0x%p\n", (uint32_t)f, r);
 
 	real_cpu_init();
 	gdb_start();

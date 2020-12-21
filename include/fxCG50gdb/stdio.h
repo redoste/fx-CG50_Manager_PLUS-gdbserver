@@ -1,6 +1,8 @@
 #ifndef STDIO_H
 #define STDIO_H
 
-void fxCG50gdb_printf(const char* format, ...);
+#include <stdio.h>
+
+#define fxCG50gdb_printf(...) printf("[fxCG50gdb] " __VA_ARGS__)
 
 #endif

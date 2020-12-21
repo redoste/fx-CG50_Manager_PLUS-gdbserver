@@ -8,7 +8,7 @@
 #include <fxCG50gdb/stdio.h>
 
 void break_main(struct break_state* context) {
-	fxCG50gdb_printf("BREAK with context at 0x%p\n", context);
+	fxCG50gdb_printf("BREAK with context at 0x%p\n", (void*)context);
 
 	struct registers* r = real_cpu_registers();
 	r->pc = context->ebp;
