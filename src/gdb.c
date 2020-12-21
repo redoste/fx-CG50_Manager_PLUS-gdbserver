@@ -61,6 +61,31 @@ static int gdb_init_socket() {
 	return 0;
 }
 
+// This stupid lock should never be used but we keep it for safety
+static bool gdb_SIGINT_thread_is_running = false;
+static unsigned long __stdcall gdb_SIGINT_thread(void* lpParameter) {
+	(void)lpParameter;
+
+	gdb_SIGINT_thread_is_running = true;
+	char buf;
+	fxCG50gdb_printf("gdb_SIGINT_thread : started\n");
+
+	assert(recv(gdb_client_socket, &buf, 1, MSG_PEEK) >= 1);
+	if (buf == 0x03) {
+		fxCG50gdb_printf("gdb_SIGINT_thread : recv SIGINT : breaking\n");
+		gdb_wants_step = true;
+	}
+
+	fxCG50gdb_printf("gdb_SIGINT_thread : ended\n");
+	gdb_SIGINT_thread_is_running = false;
+	return 0;
+}
+
+static void gdb_start_SIGINT_thread() {
+	if (!gdb_SIGINT_thread_is_running)
+		CreateThread(NULL, 0, &gdb_SIGINT_thread, NULL, 0, NULL);
+}
+
 static unsigned long __stdcall gdb_start_thread(void* lpParameter) {
 	(void)lpParameter;
 	assert(WaitForSingleObject(gdb_client_socket_mutex, INFINITE) == WAIT_OBJECT_0);
@@ -562,6 +587,7 @@ void gdb_main(bool program_started) {
 			case 'c':
 				if (program_started)
 					assert(ReleaseMutex(gdb_client_socket_mutex));
+				gdb_start_SIGINT_thread();
 				return;
 
 			default:
