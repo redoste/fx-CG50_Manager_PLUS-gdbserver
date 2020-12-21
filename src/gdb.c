@@ -82,6 +82,7 @@ void gdb_start() {
 }
 
 uint8_t* gdb_breakpoints[128] = {NULL};
+size_t gdb_breakpoints_amount = 0;
 static void gdb_add_breakpoint(uint32_t address) {
 	fxCG50gdb_printf("gdb_add_breakpoint : New breakpoint at 0x%08X (bp@0x%08X)\n", address, gdb_breakpoints);
 	address = address >> 1;
@@ -93,9 +94,13 @@ static void gdb_add_breakpoint(uint32_t address) {
 		gdb_breakpoints[prefix] = malloc(0x1000000 >> 3);
 		memset(gdb_breakpoints[prefix], 0, 0x1000000 >> 3);
 	}
-	gdb_breakpoints[prefix][suffix >> 3] |= 1 << (suffix & 7);
-	fxCG50gdb_printf("gdb_add_breakpoint : address=0x%08X p=0x%02X s=0x%06X bp@0x%08X bp=0x%02X\n", address, prefix,
-			 suffix, &gdb_breakpoints[prefix][suffix >> 3], gdb_breakpoints[prefix][suffix >> 3]);
+	if (!(gdb_breakpoints[prefix][suffix >> 3] & (1 << (suffix & 7)))) {
+		gdb_breakpoints[prefix][suffix >> 3] |= 1 << (suffix & 7);
+		gdb_breakpoints_amount += 1;
+	}
+	fxCG50gdb_printf("gdb_add_breakpoint : address=0x%08X p=0x%02X s=0x%06X bp@0x%08X bp=0x%02X amount=%d\n",
+			 address, prefix, suffix, &gdb_breakpoints[prefix][suffix >> 3],
+			 gdb_breakpoints[prefix][suffix >> 3], gdb_breakpoints_amount);
 }
 
 static void gdb_del_breakpoint(uint32_t address) {
@@ -104,10 +109,14 @@ static void gdb_del_breakpoint(uint32_t address) {
 	uint8_t prefix = address >> 24;
 	uint32_t suffix = address & 0xFFFFFF;
 	if (gdb_breakpoints[prefix] != NULL) {
-		gdb_breakpoints[prefix][suffix >> 3] &= ~(1 << (suffix & 7));
-		fxCG50gdb_printf("gdb_del_breakpoint : address=0x%08X p=0x%02X s=0x%06X bp@0x%08X bp=0x%02X\n", address,
-				 prefix, suffix, &gdb_breakpoints[prefix][suffix >> 3],
-				 gdb_breakpoints[prefix][suffix >> 3]);
+		if (gdb_breakpoints[prefix][suffix >> 3] & (1 << (suffix & 7))) {
+			gdb_breakpoints[prefix][suffix >> 3] &= ~(1 << (suffix & 7));
+			gdb_breakpoints_amount -= 1;
+		}
+		fxCG50gdb_printf(
+			"gdb_del_breakpoint : address=0x%08X p=0x%02X s=0x%06X bp@0x%08X bp=0x%02X amount=%d\n",
+			address, prefix, suffix, &gdb_breakpoints[prefix][suffix >> 3],
+			gdb_breakpoints[prefix][suffix >> 3], gdb_breakpoints_amount);
 	}
 	// Currently we don't garbage collect gdb_breakpoints, if the user puts and delete a lot of breakpoints, this
 	// might be heavy on memory usage
