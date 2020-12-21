@@ -2,8 +2,8 @@
 
 A GDB Remote Serial Protocol implementation that hooks to fx-CG50 Manager PLUS allowing to debug code running on the emulated calculator.
 
-Demo (new at 33e6ab4) : [https://youtu.be/3ucQ3VpzQxI](https://youtu.be/3ucQ3VpzQxI) : This demo features the debugging of an add-in compiled with GCC and demonstrates the usage of software and hardware breakpoints.
-Demo (old at 7a848ec) : [https://youtu.be/wGWVSqz2svo](https://youtu.be/wGWVSqz2svo) : This demo features the debugging of an add-in written in assembler and demonstrates the modification of general purpose registers.
+* Demo (new at 33e6ab4) : [https://youtu.be/3ucQ3VpzQxI](https://youtu.be/3ucQ3VpzQxI) : This demo features the debugging of an add-in compiled with GCC and demonstrates the usage of software and hardware breakpoints.
+* Demo (old at 7a848ec) : [https://youtu.be/wGWVSqz2svo](https://youtu.be/wGWVSqz2svo) : This demo features the debugging of an add-in written in assembler and demonstrates the modification of general purpose registers.
 
 ## Usage :
 * Build with [ninja](https://ninja-build.org/)
