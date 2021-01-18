@@ -40,8 +40,8 @@ static void mmu_update_instruction_cache(uint32_t* dword_ptr) {
 	for (size_t i = 0; i < 2; i++) {
 		cache_ptr[i] = (decode_instruction(word_ptr[i]) & 0xFF) << 8;
 #ifdef MMU_DEBUG
-		fxCG50gdb_printf("mmu_update_instruction_cache : i@0x%08X ic@0x%08X i=0x%02X ic=0x%02X\n", &word_ptr[i],
-				 &cache_ptr[i], word_ptr[i], cache_ptr[i]);
+		fxCG50gdb_printf("mmu_update_instruction_cache : i@0x%p ic@0x%p i=0x%02X ic=0x%02X\n",
+				 (void*)&word_ptr[i], (void*)&cache_ptr[i], word_ptr[i], cache_ptr[i]);
 #endif
 	}
 }
@@ -58,8 +58,8 @@ static uint32_t mmu_read_physical_dword(uint32_t physical_address) {
 							   &data[(physical_address & 0xfff) >> 2],
 							   region->module_functions, function);
 #ifdef MMU_DEBUG
-		fxCG50gdb_printf("mmu_read_physical_dword : pa=0x%08X d@0x%08X f@0x%08X v=0x%08X\n", physical_address,
-				 data, function, value);
+		fxCG50gdb_printf("mmu_read_physical_dword : pa=0x%08X d@0x%p f@0x%p v=0x%08X\n", physical_address,
+				 (void*)data, function, value);
 #endif
 		return value;
 	}
@@ -67,7 +67,7 @@ static uint32_t mmu_read_physical_dword(uint32_t physical_address) {
 	uint32_t* data = (uint32_t*)((uint32_t)mmu_get_region(physical_address)->data & 0xfffffffc);
 	uint32_t value = data == NULL ? 0xFFFFFFFF : data[(physical_address & 0xfff) >> 2];
 #ifdef MMU_DEBUG
-	fxCG50gdb_printf("mmu_read_physical_dword : pa=0x%08X d@0x%08X v=0x%08X\n", physical_address, data, value);
+	fxCG50gdb_printf("mmu_read_physical_dword : pa=0x%08X d@0x%p v=0x%08X\n", physical_address, (void*)data, value);
 #endif
 	return value;
 }
@@ -83,8 +83,8 @@ static void mmu_write_physical_dword(uint32_t physical_address, uint32_t value) 
 					  region->module_functions, function);
 		// We shouldn't update the instruction cache, the module's function will do it correctly
 #ifdef MMU_DEBUG
-		fxCG50gdb_printf("mmu_write_physical_dword : pa=0x%08X d@0x%08X f@0x%08X v=0x%08X\n", physical_address,
-				 data, function, value);
+		fxCG50gdb_printf("mmu_write_physical_dword : pa=0x%08X d@0x%p f@0x%p v=0x%08X\n", physical_address,
+				 (void*)data, function, value);
 #endif
 		return;
 	}
@@ -93,7 +93,8 @@ static void mmu_write_physical_dword(uint32_t physical_address, uint32_t value) 
 	if (data != NULL)
 		data[(physical_address & 0xfff) >> 2] = value;
 #ifdef MMU_DEBUG
-	fxCG50gdb_printf("mmu_write_physical_dword : pa=0x%08X d@0x%08X v=0x%08X\n", physical_address, data, value);
+	fxCG50gdb_printf("mmu_write_physical_dword : pa=0x%08X d@0x%p v=0x%08X\n", physical_address, (void*)data,
+			 value);
 #endif
 	mmu_update_instruction_cache(&data[(physical_address & 0xfff) >> 2]);
 }
@@ -124,7 +125,7 @@ void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size) {
 	}
 	uint8_t* copy_start = (uint8_t*)local_buf + (virtual_address - aligned_address);
 #ifdef MMU_DEBUG
-	fxCG50gdb_printf("mmu_read : lb@0x%08X cs@0x%08X s=%d\n", local_buf, copy_start, size);
+	fxCG50gdb_printf("mmu_read : lb@0x%p cs@0x%p s=%d\n", (void*)local_buf, (void*)copy_start, size);
 #endif
 	memcpy(buf, copy_start, size);
 	free(local_buf);
@@ -159,7 +160,7 @@ void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size) {
 	}
 
 #ifdef MMU_DEBUG
-	fxCG50gdb_printf("mmu_write : lb@0x%08X va=0x%08X aa=0x%08X s=%d\n", local_buf, virtual_address,
+	fxCG50gdb_printf("mmu_write : lb@0x%p va=0x%08X aa=0x%08X s=%d\n", (void*)local_buf, virtual_address,
 			 aligned_address, size);
 #endif
 	uint32_t* local_buf_as_dword = (uint32_t*)local_buf;
