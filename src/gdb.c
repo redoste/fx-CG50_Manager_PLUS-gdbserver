@@ -345,8 +345,7 @@ static int gdb_handle_G_packet(char* buf) {
 	emur->r13 = ntohl(gdbr.r13);
 	emur->r14 = ntohl(gdbr.r14);
 	emur->r15 = ntohl(gdbr.r15);
-	// TODO : Implement "set $pc" correctly
-	// emur->pc = gdbr.pc;
+	emur->pc = ntohl(gdbr.pc);
 	emur->pr = ntohl(gdbr.pr);
 	emur->gbr = ntohl(gdbr.gbr);
 	emur->vbr = ntohl(gdbr.vbr);
@@ -375,9 +374,7 @@ static int gdb_handle_P_packet(char* buf) {
 
 	struct registers* emur = real_cpu_registers();
 	GDB_REGISTER_ID_MAPPING(emur, register_mapping);
-	// TODO : Implement "set $pc" correctly
-	if (register_id >= sizeof(register_mapping) / sizeof(uint32_t*) || register_mapping[register_id] == NULL ||
-	    register_mapping[register_id] == &emur->pc) {
+	if (register_id >= sizeof(register_mapping) / sizeof(uint32_t*) || register_mapping[register_id] == NULL) {
 		return gdb_send_packet("E01", 3);
 	}
 	*register_mapping[register_id] = register_value;

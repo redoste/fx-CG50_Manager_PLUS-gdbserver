@@ -19,7 +19,7 @@ extern void* break_jti_original_function_ptr;
 
 void break_ii_handler();
 void break_jti_handler();
-void break_main(struct break_state*);
+void* break_main(struct break_state*);
 void break_ii_main(struct break_state*);
 void break_jti_main(struct break_state*);
 

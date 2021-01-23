@@ -124,6 +124,12 @@ void* real_cpu_next_instruction_function() {
 	return *p;
 }
 
+void real_cpu_clean_delayed_branch() {
+	uint32_t* dest = (uint32_t*)((uint8_t*)real_cpu_dll + real_dll_next_instruction_ptr_off);
+	uint32_t* src = (uint32_t*)((uint8_t*)real_cpu_dll + real_dll_next_instruction_no_delayed_branch_ptr_off);
+	*dest = *src;
+}
+
 void* real_cpu_instruction_table_function(size_t index) {
 	void** instruction_table = (void**)((uint8_t*)real_cpu_dll + real_dll_instruction_table_off);
 	return instruction_table[index];

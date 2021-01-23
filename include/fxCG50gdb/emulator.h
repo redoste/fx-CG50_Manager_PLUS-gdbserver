@@ -93,6 +93,7 @@ struct mmu_region* real_cpu_mmu_regions_p4();
 uint32_t* real_cpu_mmu_no_translation_table();
 real_decode_instruction real_cpu_decode_instruction();
 void* real_cpu_next_instruction_function();
+void real_cpu_clean_delayed_branch();
 void* real_cpu_instruction_table_function(size_t index);
 
 #endif
