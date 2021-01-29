@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <winsock2.h>
 
+#include <fxCG50gdb/bswap.h>
 #include <fxCG50gdb/emulator.h>
 #include <fxCG50gdb/mmu.h>
 #include <fxCG50gdb/stdio.h>
@@ -121,7 +121,7 @@ void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size) {
 #ifdef MMU_DEBUG
 		fxCG50gdb_printf("mmu_read : a=0x%08X i=%d\n", a, i);
 #endif
-		local_buf[i] = htonl(mmu_read_virtual_dword(a));
+		local_buf[i] = htoel(mmu_read_virtual_dword(a));
 	}
 	uint8_t* copy_start = (uint8_t*)local_buf + (virtual_address - aligned_address);
 #ifdef MMU_DEBUG
@@ -140,7 +140,7 @@ void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size) {
 	// There is probably a better way to do this but it works
 	// We just fill local_buf with the extra bytes before and after the provided ones to make everything aligned
 	if (virtual_address != aligned_address) {
-		uint32_t old_value = htonl(mmu_read_virtual_dword(aligned_address));
+		uint32_t old_value = htoel(mmu_read_virtual_dword(aligned_address));
 		uint8_t* b = (uint8_t*)&old_value;
 		size_t i = 0;
 		for (; (unsigned int)(b - (uint8_t*)&old_value) < virtual_address - aligned_address; b++, i++) {
@@ -150,7 +150,7 @@ void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size) {
 	size_t high_part_size = (virtual_address - aligned_address) + size;
 	if (high_part_size % 4 != 0) {
 		uint32_t last_aligned_address = (virtual_address + size) & 0xfffffffc;
-		uint32_t old_value = htonl(mmu_read_virtual_dword(last_aligned_address));
+		uint32_t old_value = htoel(mmu_read_virtual_dword(last_aligned_address));
 		uint8_t* b = (uint8_t*)&old_value;
 		b += high_part_size % 4;
 		size_t i = high_part_size;
@@ -170,7 +170,7 @@ void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size) {
 #ifdef MMU_DEBUG
 		fxCG50gdb_printf("mmu_write : a=%08X i=%d\n", a, i);
 #endif
-		mmu_write_virtual_dword(a, ntohl(local_buf_as_dword[i]));
+		mmu_write_virtual_dword(a, etohl(local_buf_as_dword[i]));
 	}
 	free(local_buf);
 }

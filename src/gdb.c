@@ -6,6 +6,7 @@
 #include <windows.h>
 #include <winsock2.h>
 
+#include <fxCG50gdb/bswap.h>
 #include <fxCG50gdb/emulator.h>
 #include <fxCG50gdb/gdb.h>
 #include <fxCG50gdb/mmu.h>
@@ -34,7 +35,7 @@ static int gdb_init_socket() {
 
 	struct sockaddr_in listen_address = {0};
 	listen_address.sin_family = AF_INET;
-	listen_address.sin_port = htons(GDB_SERVER_PORT);
+	listen_address.sin_port = htoes(GDB_SERVER_PORT);
 	err = bind(listen_socket, (struct sockaddr*)&listen_address, sizeof(listen_address));
 	if (err == SOCKET_ERROR) {
 		fxCG50gdb_printf("Unable to bind socket : %d\n", WSAGetLastError());
@@ -264,11 +265,11 @@ static int gdb_send_empty_registers() {
 static int gdb_send_registers() {
 	struct registers* emur = real_cpu_registers();
 	struct gdb_registers gdbr = {
-		htonl(emur->r0),   htonl(emur->r1),   htonl(emur->r2),	htonl(emur->r3),  htonl(emur->r4),
-		htonl(emur->r5),   htonl(emur->r6),   htonl(emur->r7),	htonl(emur->r8),  htonl(emur->r9),
-		htonl(emur->r10),  htonl(emur->r11),  htonl(emur->r12), htonl(emur->r13), htonl(emur->r14),
-		htonl(emur->r15),  htonl(emur->pc),   htonl(emur->pr),	htonl(emur->gbr), htonl(emur->vbr),
-		htonl(emur->mach), htonl(emur->macl), htonl(emur->sr),
+		htoel(emur->r0),   htoel(emur->r1),   htoel(emur->r2),	htoel(emur->r3),  htoel(emur->r4),
+		htoel(emur->r5),   htoel(emur->r6),   htoel(emur->r7),	htoel(emur->r8),  htoel(emur->r9),
+		htoel(emur->r10),  htoel(emur->r11),  htoel(emur->r12), htoel(emur->r13), htoel(emur->r14),
+		htoel(emur->r15),  htoel(emur->pc),   htoel(emur->pr),	htoel(emur->gbr), htoel(emur->vbr),
+		htoel(emur->mach), htoel(emur->macl), htoel(emur->sr),
 	};
 
 	char buf[(sizeof(gdbr) * 2) + 1];
@@ -301,7 +302,7 @@ static int gdb_handle_p_packet(char* buf) {
 	if (register_id >= sizeof(register_mapping) / sizeof(uint32_t*) || register_mapping[register_id] == NULL) {
 		return gdb_send_packet("xxxxxxxx", 8);
 	}
-	uint32_t register_value = htonl(*register_mapping[register_id]);
+	uint32_t register_value = htoel(*register_mapping[register_id]);
 	char outbuf[(sizeof(register_value) * 2) + 1];
 	static const char hex[] = "0123456789ABCDEF";
 	for (size_t i = 0; i < sizeof(register_value); i++) {
@@ -329,29 +330,29 @@ static int gdb_handle_G_packet(char* buf) {
 	}
 
 	struct registers* emur = real_cpu_registers();
-	emur->r0 = ntohl(gdbr.r0);
-	emur->r1 = ntohl(gdbr.r1);
-	emur->r2 = ntohl(gdbr.r2);
-	emur->r3 = ntohl(gdbr.r3);
-	emur->r4 = ntohl(gdbr.r4);
-	emur->r5 = ntohl(gdbr.r5);
-	emur->r6 = ntohl(gdbr.r6);
-	emur->r7 = ntohl(gdbr.r7);
-	emur->r8 = ntohl(gdbr.r8);
-	emur->r9 = ntohl(gdbr.r9);
-	emur->r10 = ntohl(gdbr.r10);
-	emur->r11 = ntohl(gdbr.r11);
-	emur->r12 = ntohl(gdbr.r12);
-	emur->r13 = ntohl(gdbr.r13);
-	emur->r14 = ntohl(gdbr.r14);
-	emur->r15 = ntohl(gdbr.r15);
-	emur->pc = ntohl(gdbr.pc);
-	emur->pr = ntohl(gdbr.pr);
-	emur->gbr = ntohl(gdbr.gbr);
-	emur->vbr = ntohl(gdbr.vbr);
-	emur->mach = ntohl(gdbr.mach);
-	emur->macl = ntohl(gdbr.macl);
-	emur->sr = ntohl(gdbr.sr);
+	emur->r0 = etohl(gdbr.r0);
+	emur->r1 = etohl(gdbr.r1);
+	emur->r2 = etohl(gdbr.r2);
+	emur->r3 = etohl(gdbr.r3);
+	emur->r4 = etohl(gdbr.r4);
+	emur->r5 = etohl(gdbr.r5);
+	emur->r6 = etohl(gdbr.r6);
+	emur->r7 = etohl(gdbr.r7);
+	emur->r8 = etohl(gdbr.r8);
+	emur->r9 = etohl(gdbr.r9);
+	emur->r10 = etohl(gdbr.r10);
+	emur->r11 = etohl(gdbr.r11);
+	emur->r12 = etohl(gdbr.r12);
+	emur->r13 = etohl(gdbr.r13);
+	emur->r14 = etohl(gdbr.r14);
+	emur->r15 = etohl(gdbr.r15);
+	emur->pc = etohl(gdbr.pc);
+	emur->pr = etohl(gdbr.pr);
+	emur->gbr = etohl(gdbr.gbr);
+	emur->vbr = etohl(gdbr.vbr);
+	emur->mach = etohl(gdbr.mach);
+	emur->macl = etohl(gdbr.macl);
+	emur->sr = etohl(gdbr.sr);
 
 	return gdb_send_packet("OK", 2);
 }
