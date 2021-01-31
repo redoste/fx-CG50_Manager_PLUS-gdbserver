@@ -511,6 +511,30 @@ static int gdb_handle_Zz_packet(char* buf) {
 	return gdb_send_packet("OK", 2);
 }
 
+#ifdef GDB_NON_STANDARD_FEATURES
+static int gdb_handle_non_standard(char* buf) {
+	buf++;
+	// We only support the "dump_region" command right now
+	assert(strncmp(buf, "dump_region", 11) == 0);
+
+	buf += 11;
+	uint32_t physical_address = strtoul(buf, NULL, 16);
+	fxCG50gdb_printf("gdb_handle_non_standard : Dumping region at 0x%08X\n", physical_address);
+
+	const size_t region_size = 0x1000;
+	uint32_t* data = (uint32_t*)((uint32_t)mmu_get_region(physical_address)->data & 0xfffffffc);
+	uint32_t* outbuf = malloc(region_size);
+
+	memcpy(outbuf, data, region_size);
+	for (size_t i = 0; i < region_size / sizeof(uint32_t); i++) {
+		outbuf[i] = htoel(outbuf[i]);
+	}
+	int ret = send(gdb_client_socket, (void*)outbuf, region_size, 0);
+	free(outbuf);
+	return ret == region_size ? 0 : -1;
+}
+#endif
+
 void gdb_main(bool program_started) {
 	char buf[256];
 	size_t packet_len;
@@ -579,6 +603,11 @@ void gdb_main(bool program_started) {
 				assert(gdb_handle_Zz_packet(buf) >= 0);
 				break;
 
+#ifdef GDB_NON_STANDARD_FEATURES
+			case '\xFF':
+				assert(gdb_handle_non_standard(buf) >= 0);
+				break;
+#endif
 			case 's':
 				gdb_wants_step = true;
 				__attribute__((fallthrough));

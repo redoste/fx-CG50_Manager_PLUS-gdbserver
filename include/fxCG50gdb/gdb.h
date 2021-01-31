@@ -13,6 +13,9 @@
 // This may speed up the session
 #define GDB_SEND_RECV_DEBUG
 
+// Comment this line to disable non-standard fxCG50gdb's features
+#define GDB_NON_STANDARD_FEATURES
+
 // We store registers in BIG-ENDIAN in this structure since they are going to be sent to GDB as is
 struct gdb_registers {
 	uint32_t r0;
