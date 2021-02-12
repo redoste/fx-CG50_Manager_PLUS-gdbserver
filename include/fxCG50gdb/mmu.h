@@ -26,7 +26,7 @@ uint32_t mmu_rw_dword_real_context(uint32_t virtual_address,
 				   uint32_t* data_ptr,
 				   void* module_functions,
 				   void* function);
-void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size);
+void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size, size_t back_size, uint8_t** real_start);
 void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size);
 
 #endif

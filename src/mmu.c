@@ -107,10 +107,10 @@ static void mmu_write_virtual_dword(uint32_t virtual_address, uint32_t value) {
 	mmu_write_physical_dword(mmu_translate_address(virtual_address), value);
 }
 
-void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size) {
+void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size, size_t back_size, uint8_t** real_start) {
 	uint32_t aligned_address = virtual_address & 0xfffffffc;
 	// Kinda ugly but 16 should be enough to take into account the alignment of the address and size rounding
-	uint32_t* local_buf = malloc(size + 16);
+	assert(back_size >= size + 16);
 
 #ifdef MMU_DEBUG
 	fxCG50gdb_printf("mmu_read : va=0x%08X aa=0x%08X s=%d\n", virtual_address, aligned_address, size);
@@ -121,14 +121,12 @@ void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size) {
 #ifdef MMU_DEBUG
 		fxCG50gdb_printf("mmu_read : a=0x%08X i=%d\n", a, i);
 #endif
-		local_buf[i] = htoel(mmu_read_virtual_dword(a));
+		((uint32_t*)buf)[i] = htoel(mmu_read_virtual_dword(a));
 	}
-	uint8_t* copy_start = (uint8_t*)local_buf + (virtual_address - aligned_address);
+	*real_start = buf + (virtual_address - aligned_address);
 #ifdef MMU_DEBUG
-	fxCG50gdb_printf("mmu_read : lb@0x%p cs@0x%p s=%d\n", (void*)local_buf, (void*)copy_start, size);
+	fxCG50gdb_printf("mmu_read : b@0x%p rs@0x%p s=%d\n", (void*)buf, (void*)*real_start, size);
 #endif
-	memcpy(buf, copy_start, size);
-	free(local_buf);
 }
 
 void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size) {

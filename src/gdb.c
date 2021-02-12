@@ -408,8 +408,10 @@ static int gdb_handle_m_packet(char* buf) {
 	address = strtoul(address_hex, NULL, 16);
 	size = strtoul(size_hex, NULL, 16);
 
-	uint8_t* outbuf = malloc(size);
-	mmu_read(address, outbuf, size);
+	// Kinda ugly but 16 should be enough to take into account the alignment of the address and size rounding
+	uint8_t* outbuf_back = malloc(size + 16);
+	uint8_t* outbuf;
+	mmu_read(address, outbuf_back, size, size + 16, &outbuf);
 
 	size_t outbuf_size = size * 2 + 1;
 	char* outbuf_hex = malloc(outbuf_size);
@@ -422,7 +424,7 @@ static int gdb_handle_m_packet(char* buf) {
 	}
 	int err = gdb_send_packet(outbuf_hex, outbuf_size - 1);
 	free(outbuf_hex);
-	free(outbuf);
+	free(outbuf_back);
 	return err;
 }
 
