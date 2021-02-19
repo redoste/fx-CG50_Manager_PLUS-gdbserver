@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -107,10 +108,67 @@ static void mmu_write_virtual_dword(uint32_t virtual_address, uint32_t value) {
 	mmu_write_physical_dword(mmu_translate_address(virtual_address), value);
 }
 
+#ifdef MMU_DIS_CACHE
+static uint8_t mmu_dis_cache_buffer[MMU_REGION_SIZE];
+static uint32_t mmu_dis_cache_base_virtual_address;
+static bool mmu_dis_cache_loaded;
+
+void mmu_dis_cache_unload() {
+	mmu_dis_cache_loaded = false;
+}
+
+static void mmu_dis_cache_load(uint32_t virtual_address) {
+	mmu_dis_cache_base_virtual_address = virtual_address & 0xfffff000;
+	struct mmu_region* region = mmu_get_region(mmu_translate_address(mmu_dis_cache_base_virtual_address));
+	uint32_t* data = (uint32_t*)((uint32_t)region->data & 0xfffffffc);
+	memcpy(mmu_dis_cache_buffer, data, MMU_REGION_SIZE);
+
+	for (size_t i = 0; i < MMU_REGION_SIZE / sizeof(uint32_t); i++) {
+		((uint32_t*)mmu_dis_cache_buffer)[i] = htoel(((uint32_t*)mmu_dis_cache_buffer)[i]);
+	}
+
+	mmu_dis_cache_loaded = true;
+#ifdef MMU_DEBUG
+	fxCG50gdb_printf("mmu_dis_cache_load : loaded disassembler cache va=0x%08X\n",
+			 mmu_dis_cache_base_virtual_address);
+#endif
+}
+
+static bool mmu_dis_cache_is_loaded(uint32_t virtual_address) {
+	if (!mmu_dis_cache_loaded)
+		return false;
+	if ((virtual_address & 0xfffff000) == mmu_dis_cache_base_virtual_address)
+		return true;
+	return false;
+}
+#endif
+
 void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size, size_t back_size, uint8_t** real_start) {
-	uint32_t aligned_address = virtual_address & 0xfffffffc;
 	// Kinda ugly but 16 should be enough to take into account the alignment of the address and size rounding
 	assert(back_size >= size + 16);
+
+#ifdef MMU_DIS_CACHE
+	if (size == 2 && (virtual_address & 1) == 0) {
+		if (!mmu_dis_cache_is_loaded(virtual_address))
+			mmu_dis_cache_load(virtual_address);
+		uint16_t value = ((uint16_t*)mmu_dis_cache_buffer)[(virtual_address & 0xfff) >> 1];
+		((uint16_t*)buf)[0] = value;
+		*real_start = buf;
+#ifdef MMU_DEBUG
+		fxCG50gdb_printf("mmu_read : hit disassembler cache va=0x%08X v=0x%04X\n", virtual_address, value);
+#endif
+		return;
+	} else if (mmu_dis_cache_is_loaded(virtual_address) && mmu_dis_cache_is_loaded(virtual_address + size - 1)) {
+		memcpy(buf, mmu_dis_cache_buffer + (virtual_address & 0xfff), size);
+		*real_start = buf;
+#ifdef MMU_DEBUG
+		fxCG50gdb_printf("mmu_read : hit disassembler cache va=0x%08X s=%d\n", virtual_address, size);
+#endif
+		return;
+	}
+#endif
+
+	uint32_t aligned_address = virtual_address & 0xfffffffc;
 
 #ifdef MMU_DEBUG
 	fxCG50gdb_printf("mmu_read : va=0x%08X aa=0x%08X s=%d\n", virtual_address, aligned_address, size);
@@ -130,6 +188,11 @@ void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size, size_t back_s
 }
 
 void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size) {
+#ifdef MMU_DIS_CACHE
+	if (mmu_dis_cache_is_loaded(virtual_address))
+		mmu_dis_cache_unload();
+#endif
+
 	uint32_t aligned_address = virtual_address & 0xfffffffc;
 	// Kinda ugly but 16 should be enough to take into account the alignment of the address and size rounding
 	uint8_t* local_buf = malloc(size + 16);

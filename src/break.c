@@ -19,6 +19,9 @@ void* break_main(struct break_state* context) {
 	fxCG50gdb_printf("r8 = %08X r9 = %08X rA = %08X rB = %08X\n", r->r8, r->r9, r->r10, r->r11);
 	fxCG50gdb_printf("rC = %08X rD = %08X rE = %08X rF = %08X\n", r->r12, r->r13, r->r14, r->r15);
 
+#ifdef MMU_DIS_CACHE
+	mmu_dis_cache_unload();
+#endif
 	gdb_main(true);
 
 	if (context->ebp != r->pc) {
