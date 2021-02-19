@@ -36,7 +36,7 @@ uint32_t mmu_translate_address(uint32_t virtual_address) {
 static void mmu_update_instruction_cache(uint32_t* dword_ptr) {
 	real_decode_instruction decode_instruction = real_cpu_decode_instruction();
 	uint16_t* word_ptr = (uint16_t*)dword_ptr;
-	uint16_t* cache_ptr = (uint16_t*)((uint8_t*)dword_ptr + 0x1000);
+	uint16_t* cache_ptr = (uint16_t*)((uint8_t*)dword_ptr + MMU_REGION_SIZE);
 	for (size_t i = 0; i < 2; i++) {
 		cache_ptr[i] = (decode_instruction(word_ptr[i]) & 0xFF) << 8;
 #ifdef MMU_DEBUG

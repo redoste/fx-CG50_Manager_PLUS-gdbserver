@@ -523,17 +523,16 @@ static int gdb_handle_non_standard(char* buf) {
 	uint32_t physical_address = strtoul(buf, NULL, 16);
 	fxCG50gdb_printf("gdb_handle_non_standard : Dumping region at 0x%08X\n", physical_address);
 
-	const size_t region_size = 0x1000;
 	uint32_t* data = (uint32_t*)((uint32_t)mmu_get_region(physical_address)->data & 0xfffffffc);
-	uint32_t* outbuf = malloc(region_size);
+	uint32_t* outbuf = malloc(MMU_REGION_SIZE);
 
-	memcpy(outbuf, data, region_size);
-	for (size_t i = 0; i < region_size / sizeof(uint32_t); i++) {
+	memcpy(outbuf, data, MMU_REGION_SIZE);
+	for (size_t i = 0; i < MMU_REGION_SIZE / sizeof(uint32_t); i++) {
 		outbuf[i] = htoel(outbuf[i]);
 	}
-	int ret = send(gdb_client_socket, (void*)outbuf, region_size, 0);
+	int ret = send(gdb_client_socket, (void*)outbuf, MMU_REGION_SIZE, 0);
 	free(outbuf);
-	return ret == region_size ? 0 : -1;
+	return ret == MMU_REGION_SIZE ? 0 : -1;
 }
 #endif
 

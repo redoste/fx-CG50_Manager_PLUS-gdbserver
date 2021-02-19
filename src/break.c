@@ -42,7 +42,7 @@ void* break_main(struct break_state* context) {
 		// fall through to the `shll2` instruction without calling the function pointed by r12.
 		real_cpu_clean_delayed_branch();
 
-		uint8_t instruction_index = *(uint16_t*)((uint8_t*)context->edi + 0x1000) >> 8;
+		uint8_t instruction_index = *(uint16_t*)((uint8_t*)context->edi + MMU_REGION_SIZE) >> 8;
 		return real_cpu_instruction_table_function(instruction_index);
 	}
 	return NULL;
@@ -60,7 +60,7 @@ void break_ii_main(struct break_state* context) {
 	void* next_function = break_main(context);
 	if (instruction >> 8 == 0xC3) {
 		instruction = *(uint16_t*)context->edi;
-		uint8_t instruction_index = *(uint16_t*)((uint8_t*)context->edi + 0x1000) >> 8;
+		uint8_t instruction_index = *(uint16_t*)((uint8_t*)context->edi + MMU_REGION_SIZE) >> 8;
 		fxCG50gdb_printf(
 			"break_ii_main : resuming from TRAPA with new instruction = 0x%04X instruction_index = "
 			"0x%02X\n",

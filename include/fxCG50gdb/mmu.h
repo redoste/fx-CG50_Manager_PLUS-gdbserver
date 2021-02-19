@@ -12,6 +12,8 @@
 #define MMU_P3_START 0xC0000000
 #define MMU_P4_START 0xE0000000
 
+#define MMU_REGION_SIZE 0x1000
+
 struct mmu_region {
 	void** module_functions;
 	uint32_t* data;
