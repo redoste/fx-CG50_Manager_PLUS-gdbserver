@@ -7,9 +7,9 @@ cc = $cross-prefix"gcc"
 ld = $cc
 as = "nasm"
 
-cflags = -O2 -Wall -Wextra -Werror -pedantic -I$root/include/ -fdiagnostics-color=always -DWIN32_LEAN_AND_MEAN
+cflags = -O2 -flto -Wall -Wextra -Werror -pedantic -I$root/include/ -fdiagnostics-color=always -DWIN32_LEAN_AND_MEAN
 aflags = -f elf32
-lflags = -shared -s -static-libgcc -lws2_32
+lflags = -flto -shared -s -static-libgcc -lws2_32
 
 rule cc
         command = $cc -MMD -MT $out -MF $out.d $cflags -c $in -o $out
