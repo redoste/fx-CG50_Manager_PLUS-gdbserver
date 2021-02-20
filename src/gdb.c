@@ -148,7 +148,7 @@ static void gdb_del_breakpoint(uint32_t address) {
 	// might be heavy on memory usage
 }
 
-int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
+static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	char read_char;
 	int read_size;
 	unsigned char checksum;
@@ -206,7 +206,7 @@ int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	return 0;
 }
 
-int gdb_send_packet(char* buf, size_t buflen) {
+static int gdb_send_packet(char* buf, size_t buflen) {
 	char local_buf[4];
 	unsigned char checksum = 0;
 	bool err = false;
@@ -538,7 +538,7 @@ static int gdb_handle_non_standard(char* buf) {
 
 void gdb_main(bool program_started) {
 	char buf[256];
-	size_t packet_len;
+	size_t packet_len = 0;
 	if (program_started) {
 		assert(WaitForSingleObject(gdb_client_socket_mutex, INFINITE) == WAIT_OBJECT_0);
 		assert(gdb_send_signal(GDB_SIGNAL_TRAP) >= 0);

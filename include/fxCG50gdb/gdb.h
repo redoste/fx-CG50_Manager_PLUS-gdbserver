@@ -44,8 +44,6 @@ struct gdb_registers {
 };
 
 void gdb_start();
-int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len);
-int gdb_send_packet(char* buf, size_t buflen);
 void gdb_main(bool program_started);
 
 extern SOCKET gdb_client_socket;
