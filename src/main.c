@@ -22,14 +22,14 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved) {
 	return TRUE;
 }
 
-void* __stdcall _DLDriverInfo() {
+void* __stdcall DLDRIVERINFO() {
 	real_DLDriver f = real_DLDriverInfo();
 	void* r = f();
 	fxCG50gdb_printf("Proxy DLDriverInfo f = 0x%08X, r = 0x%p\n", (uint32_t)f, r);
 	return r;
 }
 
-void* __stdcall _DLDriverInfoCall() {
+void* __stdcall DLDRIVERINFOCALL() {
 	real_DLDriver f = real_DLDriverInfoCall();
 	void* r = f();
 	fxCG50gdb_printf("Proxy DLDriverInfoCall f = 0x%08X, r = 0x%p\n", (uint32_t)f, r);

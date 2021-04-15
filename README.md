@@ -6,10 +6,15 @@ A GDB Remote Serial Protocol implementation that hooks to fx-CG50 Manager PLUS a
 * Demo (old at 7a848ec) : [https://youtu.be/wGWVSqz2svo](https://youtu.be/wGWVSqz2svo) : This demo features the debugging of an add-in written in assembler and demonstrates the modification of general purpose registers.
 
 ## Usage :
-* Build with [ninja](https://ninja-build.org/)
+* Build with [Ninja](https://ninja-build.org/)
 * Rename `CPU73050.dll` to `CPU73050.real.dll` in fx-CG50 Manager PLUS installation folder
 * Copy `obj/CPU73050.dll` from the build tree to the said folder
 * When starting fx-CG50 Manager PLUS, connect with GDB to port 31188
+
+### Build with MSVC :
+A solution file is available for building with MSVC but keep in mind that the MinGW + Ninja combo remains the primary build system. MSVC support is available for Windows users who don't want to install an entirely different toolchain and for debugging or profiling situations that require PDB instead of DWARF.
+
+It might be required to install [https://www.nasm.us/](nasm) and make it available in your PATH.
 
 ## Major Issues :
 This software is still in development, many problems remain.

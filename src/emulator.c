@@ -63,7 +63,7 @@ static void real_cpu_hijack_jmp_to_instruction() {
 	for (size_t i = 0; i < real_dll_jmp_to_instruction_table_amount; i++) {
 		for (size_t j = 0; j < 2; j++) {
 			memcpy(a, jmp_slide, sizeof(jmp_slide));
-			a[jmp_slide_al_index] = (j << 7) | (i & 0xFF);
+			a[jmp_slide_al_index] = (uint8_t)((j << 7) | (i & 0xFF));
 			*((uint32_t*)&a[jmp_slide_addr_index]) = (uint32_t)&break_jti_handler;
 			if (j)
 				jti_table_wtmmu[1][i] = a;
@@ -85,8 +85,10 @@ void real_cpu_init() {
 	real_cpu_translate_address_ptr = ((uint8_t*)real_cpu_dll + real_dll_mmu_translate_address);
 }
 
+#if !defined(_MSC_VER)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
 real_DLDriver real_DLDriverInfo() {
 	return (real_DLDriver)GetProcAddress(real_cpu_dll, "_DLDriverInfo@0");
 }
@@ -94,7 +96,9 @@ real_DLDriver real_DLDriverInfo() {
 real_DLDriver real_DLDriverInfoCall() {
 	return (real_DLDriver)GetProcAddress(real_cpu_dll, "_DLDriverInfoCall@0");
 }
+#if !defined(_MSC_VER)
 #pragma GCC diagnostic pop
+#endif
 
 uint32_t real_cpu_mmucr() {
 	return *(uint32_t*)((uint8_t*)real_cpu_dll + real_dll_mmucr_off);
@@ -112,12 +116,16 @@ uint32_t* real_cpu_mmu_no_translation_table() {
 	return (uint32_t*)((uint8_t*)real_cpu_dll + real_dll_mmu_no_translation_table);
 }
 
+#if !defined(_MSC_VER)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
+#endif
 real_decode_instruction real_cpu_decode_instruction() {
 	return (real_decode_instruction)((uint8_t*)real_cpu_dll + real_dll_decode_instruction_off);
 }
+#if !defined(_MSC_VER)
 #pragma GCC diagnostic pop
+#endif
 
 void* real_cpu_next_instruction_function() {
 	void** p = (void**)((uint8_t*)real_cpu_dll + real_dll_next_instruction_ptr_off);

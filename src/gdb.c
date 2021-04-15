@@ -193,7 +193,7 @@ static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	if (read_size != sizeof(read_checksum_hex) - 1)
 		return -1;
 	read_checksum_hex[2] = '\0';
-	read_checksum = strtol(read_checksum_hex, NULL, 16);
+	read_checksum = (unsigned char)strtol(read_checksum_hex, NULL, 16);
 
 	if (read_checksum != checksum) {
 		fxCG50gdb_printf("Packet checksum is invalid (%hhd != %hhd)\n", read_checksum, checksum);
@@ -295,7 +295,7 @@ static int gdb_send_registers() {
 
 static int gdb_handle_p_packet(char* buf) {
 	buf++;
-	unsigned char register_id = strtoul(buf, NULL, 16);
+	unsigned char register_id = (unsigned char)strtoul(buf, NULL, 16);
 	struct registers* emur = real_cpu_registers();
 
 	GDB_REGISTER_ID_MAPPING(emur, register_mapping);
@@ -364,7 +364,7 @@ static int gdb_handle_P_packet(char* buf) {
 	localbuf[0] = buf[0];
 	localbuf[1] = buf[1];
 	localbuf[2] = '\0';
-	unsigned char register_id = strtoul(localbuf, NULL, 16);
+	unsigned char register_id = (unsigned char)strtoul(localbuf, NULL, 16);
 
 	// A kind of weird way to check if the register number has one or two digits and increment the pointer
 	// accordingly
@@ -464,7 +464,7 @@ static int gdb_handle_M_packet(char* buf) {
 		byte_hex[0] = buf[(i * 2) + 0];
 		byte_hex[1] = buf[(i * 2) + 1];
 		byte_hex[2] = '\0';
-		inbuf[i] = strtoul(byte_hex, NULL, 16);
+		inbuf[i] = (uint8_t)strtoul(byte_hex, NULL, 16);
 	}
 
 	mmu_write(address, inbuf, size);
@@ -611,7 +611,9 @@ void gdb_main(bool program_started) {
 #endif
 			case 's':
 				gdb_wants_step = true;
+#if !defined(_MSC_VER)
 				__attribute__((fallthrough));
+#endif
 			case 'c':
 				if (program_started)
 					assert(ReleaseMutex(gdb_client_socket_mutex));
