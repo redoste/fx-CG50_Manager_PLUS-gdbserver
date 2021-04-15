@@ -14,7 +14,7 @@ A GDB Remote Serial Protocol implementation that hooks to fx-CG50 Manager PLUS a
 ### Build with MSVC :
 A solution file is available for building with MSVC but keep in mind that the MinGW + Ninja combo remains the primary build system. MSVC support is available for Windows users who don't want to install an entirely different toolchain and for debugging or profiling situations that require PDB instead of DWARF.
 
-It might be required to install [https://www.nasm.us/](nasm) and make it available in your PATH.
+It might be required to install [NASM](https://www.nasm.us/) and make it available in your PATH.
 
 ## Major Issues :
 This software is still in development, many problems remain.
