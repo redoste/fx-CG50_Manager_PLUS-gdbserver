@@ -6,6 +6,7 @@
 #include <fxCG50gdb/break.h>
 #include <fxCG50gdb/emulator.h>
 #include <fxCG50gdb/emulator_offsets.h>
+#include <fxCG50gdb/serial.h>
 #include <fxCG50gdb/stdio.h>
 
 HINSTANCE real_cpu_dll;
@@ -83,6 +84,8 @@ void real_cpu_init() {
 	real_cpu_hijack_jmp_to_instruction();
 
 	real_cpu_translate_address_ptr = ((uint8_t*)real_cpu_dll + real_dll_mmu_translate_address);
+
+	serial_init();
 }
 
 #if !defined(_MSC_VER)
@@ -141,4 +144,9 @@ void real_cpu_clean_delayed_branch() {
 void* real_cpu_instruction_table_function(size_t index) {
 	void** instruction_table = (void**)((uint8_t*)real_cpu_dll + real_dll_instruction_table_off);
 	return instruction_table[index];
+}
+
+void (**real_cpu_SCFTDR_handlers())() {
+	void (**p)() = (void (**)())((uint8_t*)real_cpu_dll + real_dll_SCFTDR_handlers_off);
+	return p;
 }

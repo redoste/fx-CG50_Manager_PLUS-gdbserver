@@ -95,5 +95,6 @@ real_decode_instruction real_cpu_decode_instruction();
 void* real_cpu_next_instruction_function();
 void real_cpu_clean_delayed_branch();
 void* real_cpu_instruction_table_function(size_t index);
+void (**real_cpu_SCFTDR_handlers())();
 
 #endif

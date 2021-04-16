@@ -64,6 +64,11 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">nasm -f win32 "%(FullPath)" -o "$(IntermediateOutputPath)%(Filename)_asm.obj"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntermediateOutputPath)%(Filename)_asm.obj</Outputs>
     </CustomBuild>
+    <CustomBuild Include="src\serial.asm">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">nasm -f win32 "%(FullPath)" -o "$(IntermediateOutputPath)%(Filename)_asm.obj"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntermediateOutputPath)%(Filename)_asm.obj</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\break.c" />
@@ -71,6 +76,7 @@
     <ClCompile Include="src\gdb.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\mmu.c" />
+    <ClCompile Include="src\serial.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

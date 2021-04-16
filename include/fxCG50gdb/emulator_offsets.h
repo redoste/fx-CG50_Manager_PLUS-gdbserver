@@ -19,6 +19,7 @@ static const size_t real_dll_instruction_table_trapa_index = 145;
 static const size_t real_dll_jmp_to_instruction_table_wtmmu_off = 0x94390;
 static const size_t real_dll_jmp_to_instruction_table_nommu_off = 0x94328;
 static const size_t real_dll_jmp_to_instruction_table_amount = 11;
+static const size_t real_dll_SCFTDR_handlers_off = 0x7dd64;
 
 static const size_t real_dll_next_instruction_ptr_off = 0x368c10;
 static const size_t real_dll_next_instruction_no_delayed_branch_ptr_off = 0x368bec;

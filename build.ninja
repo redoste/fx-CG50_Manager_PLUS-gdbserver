@@ -32,6 +32,8 @@ build $obj/gdb.o: cc $src/gdb.c
 build $obj/main.o: cc $src/main.c
 build $obj/mmu.o: cc $src/mmu.c
 build $obj/mmu_asm.o: as $src/mmu.asm
+build $obj/serial.o: cc $src/serial.c
+build $obj/serial_asm.o: as $src/serial.asm
 
 build $obj/CPU73050.dll: ld $
                          $obj/break.o $
@@ -40,6 +42,8 @@ build $obj/CPU73050.dll: ld $
                          $obj/gdb.o $
                          $obj/main.o $
                          $obj/mmu.o $
-                         $obj/mmu_asm.o
+                         $obj/mmu_asm.o $
+                         $obj/serial.o $
+                         $obj/serial_asm.o
 
 # vim: set expandtab: ts=8 sw=8
