@@ -17,7 +17,7 @@ jobs:
       uses: microsoft/setup-msbuild@v1.1
     - name: Build
       run: |
-        $env:PATH += "C:\Program Files\NASM"
+        $env:PATH += ";C:\Program Files\NASM"
         msbuild
     - name: Upload
       uses: actions/upload-artifact@v2
