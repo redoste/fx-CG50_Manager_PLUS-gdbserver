@@ -12,10 +12,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install dependencies
-      shell: 'C:\shells\msys2bash.cmd'
+      shell: 'C:\shells\msys2bash.cmd {0}'
       run: pacman -S --noconfirm --needed --noprogressbar ninja nasm mingw-w64-i686-gcc
     - name: Build
-      shell: 'C:\shells\msys2bash.cmd'
+      shell: 'C:\shells\msys2bash.cmd {0}'
       run: ninja -v
     - name: Upload
       uses: actions/upload-artifact@v2
