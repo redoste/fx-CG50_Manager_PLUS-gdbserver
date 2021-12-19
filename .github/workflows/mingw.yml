@@ -16,7 +16,9 @@ jobs:
       run: pacman -S --noconfirm --needed --noprogressbar ninja nasm mingw-w64-i686-gcc
     - name: Build
       shell: 'C:\shells\msys2bash.cmd {0}'
-      run: ninja -v
+      run: |
+        export PATH=$PATH:/mingw32/bin/
+        ninja -v
     - name: Upload
       uses: actions/upload-artifact@v2
       with:
