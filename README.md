@@ -5,16 +5,61 @@ A GDB Remote Serial Protocol implementation that hooks to fx-CG50 Manager PLUS a
 * Demo (new at 33e6ab4) : [https://youtu.be/3ucQ3VpzQxI](https://youtu.be/3ucQ3VpzQxI) : This demo features the debugging of an add-in compiled with GCC and demonstrates the usage of software and hardware breakpoints.
 * Demo (old at 7a848ec) : [https://youtu.be/wGWVSqz2svo](https://youtu.be/wGWVSqz2svo) : This demo features the debugging of an add-in written in assembler and demonstrates the modification of general purpose registers.
 
+## Build :
+Binaires are built by *GitHub Actions* and avaliable in [releases](https://github.com/redoste/fx-CG50_Manager_PLUS-gdbserver/releases) if you don't want to do it yourself.
+<details>
+  <summary>Using MSVC on Windows</summary>
+  
+  * Install [NASM](https://nasm.us) and [Visual Studio with its C compiler](https://visualstudio.microsoft.com/)
+  * From the Start menu open the *x86 Native Tools Command Prompt*
+  ```
+  > cd C:\path\to\git\repo
+  > set PATH=%PATH%;"C:\Program Files\NASM"
+  > msbuild
+  ```
+  * The binary will be available in `Release\CPU73050.dll`
+</details>
+<details>
+  <summary>Using MinGW-w64 on Windows with Cygwin</summary>
+  
+  * Install [Cygwin](https://www.cygwin.com/) and in the graphical installer make sure to check `ninja`, `nasm` and `mingw64-i686-gcc-core`
+  * Open a new Cygwin terminal
+  ```
+  $ cd /cygdrive/c/path/to/git/repo
+  $ ninja
+  ```
+  * The binary will be available in `obj/CPU73050.dll`
+</details>
+<details>
+  <summary>Using MinGW-w64 on Windows with MSYS2</summary>
+  
+  * Install [MSYS2](https://www.msys2.org/)
+  * Open a new MSYS2 terminal
+  ```
+  $ pacman -S ninja nasm mingw-w64-i686-gcc
+  $ cd /c/path/to/git/repo
+  $ PATH=$PATH:/mingw32/bin/ ninja
+  ```
+  * The binary will be available in `obj/CPU73050.dll`
+</details>
+<details>
+  <summary>Using MinGW-w64 on Linux</summary>
+  
+  * Install [NASM](https://nasm.us), [ninja](https://ninja-build.org/) and an i686 build of [MinGW-w64](https://www.mingw-w64.org/).
+  * NASM and ninja will probably be called as is in your package manager but MinGW-w64 will be harder to find, try searching for `mingw` and `i686` (e.g. on Arch Linux it's [`mingw-w64-gcc`](https://archlinux.org/packages/community/x86_64/mingw-w64-gcc/), on Debian [`gcc-mingw-w64-i686`](https://packages.debian.org/bullseye/gcc-mingw-w64-i686) or on Void Linux [`cross-i686-w64-mingw32`](https://github.com/void-linux/void-packages/blob/master/srcpkgs/cross-i686-w64-mingw32)).
+  * Open a terminal
+  ```
+  $ cd /path/ro/git/repo
+  $ $EDITOR build.ninja # Depending on your distribution you may want to update $cc and $cross-prefix
+  $ ninja
+  ```
+  * The binary will be available in `obj/CPU73050.dll`
+</details>
+
 ## Usage :
-* Build with [Ninja](https://ninja-build.org/)
 * Rename `CPU73050.dll` to `CPU73050.real.dll` in fx-CG50 Manager PLUS installation folder
-* Copy `obj/CPU73050.dll` from the build tree to the said folder
+* Copy the new `CPU73050.dll` in the same folder
 * When starting fx-CG50 Manager PLUS, connect with GDB to port 31188
-
-### Build with MSVC :
-A solution file is available for building with MSVC but keep in mind that the MinGW + Ninja combo remains the primary build system. MSVC support is available for Windows users who don't want to install an entirely different toolchain and for debugging or profiling situations that require PDB instead of DWARF.
-
-It might be required to install [NASM](https://www.nasm.us/) and make it available in your PATH.
 
 ## Major Issues :
 This software is still in development, many problems remain.
