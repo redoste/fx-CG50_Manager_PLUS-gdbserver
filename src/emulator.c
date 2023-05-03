@@ -12,12 +12,12 @@
 HINSTANCE real_cpu_dll;
 void* real_cpu_translate_address_ptr;
 
-struct registers* real_cpu_registers() {
+struct registers* real_cpu_registers(void) {
 	return (struct registers*)((uint8_t*)real_cpu_dll + real_dll_registers_off);
 }
 
-static void real_cpu_hijack_break() {
-	void (**instruction_table)() = (void (**)())((uint8_t*)real_cpu_dll + real_dll_instruction_table_off);
+static void real_cpu_hijack_break(void) {
+	void (**instruction_table)(void) = (void (**)(void))((uint8_t*)real_cpu_dll + real_dll_instruction_table_off);
 	fxCG50gdb_printf("Hijacking break... Before at 0x%08X\n",
 			 (uint32_t)instruction_table[real_dll_instruction_table_break_index]);
 	for (size_t i = 0; i < real_dll_instruction_table_break_amount; i++) {
@@ -34,7 +34,7 @@ static void real_cpu_hijack_break() {
 
 void** real_cpu_jti_table_nommu_backup;
 void** real_cpu_jti_table_wtmmu_backup;
-static void real_cpu_hijack_jmp_to_instruction() {
+static void real_cpu_hijack_jmp_to_instruction(void) {
 	void*** jti_table_nommu = (void***)((uint8_t*)real_cpu_dll + real_dll_jmp_to_instruction_table_nommu_off);
 	void*** jti_table_wtmmu = (void***)((uint8_t*)real_cpu_dll + real_dll_jmp_to_instruction_table_wtmmu_off);
 	// We erase the functions pointers used by the emulator when SR.MD = 0 since this shouldn't happen in CASIOWIN
@@ -79,7 +79,7 @@ static void real_cpu_hijack_jmp_to_instruction() {
 	VirtualProtect(slide, slide_size, PAGE_EXECUTE_READ, &old_protect);
 }
 
-void real_cpu_init() {
+void real_cpu_init(void) {
 	real_cpu_hijack_break();
 	real_cpu_hijack_jmp_to_instruction();
 
@@ -92,30 +92,30 @@ void real_cpu_init() {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
-real_DLDriver real_DLDriverInfo() {
+real_DLDriver real_DLDriverInfo(void) {
 	return (real_DLDriver)GetProcAddress(real_cpu_dll, "_DLDriverInfo@0");
 }
 
-real_DLDriver real_DLDriverInfoCall() {
+real_DLDriver real_DLDriverInfoCall(void) {
 	return (real_DLDriver)GetProcAddress(real_cpu_dll, "_DLDriverInfoCall@0");
 }
 #if !defined(_MSC_VER)
 #pragma GCC diagnostic pop
 #endif
 
-uint32_t real_cpu_mmucr() {
+uint32_t real_cpu_mmucr(void) {
 	return *(uint32_t*)((uint8_t*)real_cpu_dll + real_dll_mmucr_off);
 }
 
-struct mmu_region* real_cpu_mmu_regions() {
+struct mmu_region* real_cpu_mmu_regions(void) {
 	return (struct mmu_region*)((uint8_t*)real_cpu_dll + real_dll_mmu_regions_off);
 }
 
-struct mmu_region* real_cpu_mmu_regions_p4() {
+struct mmu_region* real_cpu_mmu_regions_p4(void) {
 	return (struct mmu_region*)((uint8_t*)real_cpu_dll + real_dll_mmu_regions_p4_off);
 }
 
-uint32_t* real_cpu_mmu_no_translation_table() {
+uint32_t* real_cpu_mmu_no_translation_table(void) {
 	return (uint32_t*)((uint8_t*)real_cpu_dll + real_dll_mmu_no_translation_table);
 }
 
@@ -123,19 +123,19 @@ uint32_t* real_cpu_mmu_no_translation_table() {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #endif
-real_decode_instruction real_cpu_decode_instruction() {
+real_decode_instruction real_cpu_decode_instruction(void) {
 	return (real_decode_instruction)((uint8_t*)real_cpu_dll + real_dll_decode_instruction_off);
 }
 #if !defined(_MSC_VER)
 #pragma GCC diagnostic pop
 #endif
 
-void* real_cpu_next_instruction_function() {
+void* real_cpu_next_instruction_function(void) {
 	void** p = (void**)((uint8_t*)real_cpu_dll + real_dll_next_instruction_ptr_off);
 	return *p;
 }
 
-void real_cpu_clean_delayed_branch() {
+void real_cpu_clean_delayed_branch(void) {
 	uint32_t* dest = (uint32_t*)((uint8_t*)real_cpu_dll + real_dll_next_instruction_ptr_off);
 	uint32_t* src = (uint32_t*)((uint8_t*)real_cpu_dll + real_dll_next_instruction_no_delayed_branch_ptr_off);
 	*dest = *src;
@@ -146,7 +146,7 @@ void* real_cpu_instruction_table_function(size_t index) {
 	return instruction_table[index];
 }
 
-void (**real_cpu_SCFTDR_handlers())() {
-	void (**p)() = (void (**)())((uint8_t*)real_cpu_dll + real_dll_SCFTDR_handlers_off);
+void (**real_cpu_SCFTDR_handlers(void))(void) {
+	void (**p)(void) = (void (**)(void))((uint8_t*)real_cpu_dll + real_dll_SCFTDR_handlers_off);
 	return p;
 }

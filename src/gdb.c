@@ -16,7 +16,7 @@ SOCKET gdb_client_socket = INVALID_SOCKET;
 static HANDLE gdb_client_socket_mutex;
 bool gdb_wants_step = false;
 
-static int gdb_init_socket() {
+static int gdb_init_socket(void) {
 	int err;
 	WSADATA wsa_data;
 	SOCKET listen_socket = INVALID_SOCKET;
@@ -82,7 +82,7 @@ static unsigned long __stdcall gdb_SIGINT_thread(void* lpParameter) {
 	return 0;
 }
 
-static void gdb_start_SIGINT_thread() {
+static void gdb_start_SIGINT_thread(void) {
 	if (!gdb_SIGINT_thread_is_running)
 		CreateThread(NULL, 0, &gdb_SIGINT_thread, NULL, 0, NULL);
 }
@@ -102,7 +102,7 @@ static unsigned long __stdcall gdb_start_thread(void* lpParameter) {
 	return 0;
 }
 
-void gdb_start() {
+void gdb_start(void) {
 	gdb_client_socket_mutex = CreateMutexA(NULL, FALSE, NULL);
 	CreateThread(NULL, 0, &gdb_start_thread, NULL, 0, NULL);
 }
@@ -253,7 +253,7 @@ static int gdb_handle_q_packet(char* buf) {
 	return gdb_send_packet(NULL, 0);
 }
 
-static int gdb_send_empty_registers() {
+static int gdb_send_empty_registers(void) {
 	char packet[(23 * 8) + 1];
 	memset(packet, 'x', sizeof(packet));
 	packet[sizeof(packet) - 1] = '\0';
@@ -262,7 +262,7 @@ static int gdb_send_empty_registers() {
 	return gdb_send_packet(packet, sizeof(packet) - 1);
 }
 
-static int gdb_send_registers() {
+static int gdb_send_registers(void) {
 	struct registers* emur = real_cpu_registers();
 	struct gdb_registers gdbr = {
 		htoel(emur->r0),   htoel(emur->r1),   htoel(emur->r2),	htoel(emur->r3),  htoel(emur->r4),

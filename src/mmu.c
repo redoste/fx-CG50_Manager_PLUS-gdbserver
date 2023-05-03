@@ -113,7 +113,7 @@ static uint8_t mmu_dis_cache_buffer[MMU_REGION_SIZE];
 static uint32_t mmu_dis_cache_base_virtual_address;
 static bool mmu_dis_cache_loaded;
 
-void mmu_dis_cache_unload() {
+void mmu_dis_cache_unload(void) {
 	mmu_dis_cache_loaded = false;
 }
 

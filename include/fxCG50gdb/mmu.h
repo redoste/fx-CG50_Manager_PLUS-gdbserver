@@ -31,7 +31,7 @@ uint32_t mmu_rw_dword_real_context(uint32_t virtual_address,
 				   void* module_functions,
 				   void* function);
 #ifdef MMU_DIS_CACHE
-void mmu_dis_cache_unload();
+void mmu_dis_cache_unload(void);
 #endif
 void mmu_read(uint32_t virtual_address, uint8_t* buf, size_t size, size_t back_size, uint8_t** real_start);
 void mmu_write(uint32_t virtual_address, uint8_t* buf, size_t size);

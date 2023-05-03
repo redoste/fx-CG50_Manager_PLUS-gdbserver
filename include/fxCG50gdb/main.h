@@ -12,7 +12,7 @@
 #endif
 
 BOOL WINAPI DllMain(HINSTANCE, DWORD, LPVOID);
-__declspec(dllexport) void* __stdcall DLDRIVERINFO();
-__declspec(dllexport) void* __stdcall DLDRIVERINFOCALL();
+__declspec(dllexport) void* __stdcall DLDRIVERINFO(void);
+__declspec(dllexport) void* __stdcall DLDRIVERINFOCALL(void);
 
 #endif

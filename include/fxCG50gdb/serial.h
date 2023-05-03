@@ -3,10 +3,10 @@
 
 #include <stdio.h>
 
-void serial_init();
-void serial_handler();
+void serial_init(void);
+void serial_handler(void);
 
 extern FILE* serial_output_file;
-extern void (*serial_old_handler)();
+extern void (*serial_old_handler)(void);
 
 #endif

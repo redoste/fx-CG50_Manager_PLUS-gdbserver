@@ -5,12 +5,12 @@
 #include <fxCG50gdb/stdio.h>
 
 FILE* serial_output_file;
-void (*serial_old_handler)();
+void (*serial_old_handler)(void);
 
-void serial_init() {
+void serial_init(void) {
 	serial_output_file = stderr;
 
-	void (**handlers)() = real_cpu_SCFTDR_handlers();
+	void (**handlers)(void) = real_cpu_SCFTDR_handlers();
 	assert(handlers[0] == handlers[1]);
 	serial_old_handler = handlers[0];
 	handlers[0] = serial_handler;

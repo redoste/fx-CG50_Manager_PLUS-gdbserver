@@ -43,7 +43,7 @@ struct gdb_registers {
 	uint32_t sr;
 };
 
-void gdb_start();
+void gdb_start(void);
 void gdb_main(bool program_started);
 
 extern SOCKET gdb_client_socket;

@@ -75,7 +75,7 @@ struct registers {
 	uint32_t pc;
 };
 
-typedef void*(__stdcall* real_DLDriver)();
+typedef void*(__stdcall* real_DLDriver)(void);
 typedef uint16_t(__stdcall* real_decode_instruction)(uint16_t);
 
 extern HINSTANCE real_cpu_dll;
@@ -83,18 +83,18 @@ extern void* real_cpu_translate_address_ptr;
 extern void** real_cpu_jti_table_nommu_backup;
 extern void** real_cpu_jti_table_wtmmu_backup;
 
-struct registers* real_cpu_registers();
-void real_cpu_init();
-real_DLDriver real_DLDriverInfo();
-real_DLDriver real_DLDriverInfoCall();
-uint32_t real_cpu_mmucr();
-struct mmu_region* real_cpu_mmu_regions();
-struct mmu_region* real_cpu_mmu_regions_p4();
-uint32_t* real_cpu_mmu_no_translation_table();
-real_decode_instruction real_cpu_decode_instruction();
-void* real_cpu_next_instruction_function();
-void real_cpu_clean_delayed_branch();
+struct registers* real_cpu_registers(void);
+void real_cpu_init(void);
+real_DLDriver real_DLDriverInfo(void);
+real_DLDriver real_DLDriverInfoCall(void);
+uint32_t real_cpu_mmucr(void);
+struct mmu_region* real_cpu_mmu_regions(void);
+struct mmu_region* real_cpu_mmu_regions_p4(void);
+uint32_t* real_cpu_mmu_no_translation_table(void);
+real_decode_instruction real_cpu_decode_instruction(void);
+void* real_cpu_next_instruction_function(void);
+void real_cpu_clean_delayed_branch(void);
 void* real_cpu_instruction_table_function(size_t index);
-void (**real_cpu_SCFTDR_handlers())();
+void (**real_cpu_SCFTDR_handlers(void))(void);
 
 #endif
