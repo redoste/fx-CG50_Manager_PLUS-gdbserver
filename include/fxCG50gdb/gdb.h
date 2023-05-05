@@ -6,7 +6,6 @@
 #include <windows.h>
 #include <winsock2.h>
 
-#define GDB_SERVER_PORT 31188
 #define GDB_SIGNAL_TRAP 5
 
 // Comment this line to disable "send" and "recv" debug output

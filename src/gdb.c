@@ -4,63 +4,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
-#include <winsock2.h>
 
 #include <fxCG50gdb/bswap.h>
 #include <fxCG50gdb/emulator.h>
 #include <fxCG50gdb/gdb.h>
+#include <fxCG50gdb/gdb_io.h>
 #include <fxCG50gdb/mmu.h>
 #include <fxCG50gdb/stdio.h>
 
-SOCKET gdb_client_socket = INVALID_SOCKET;
-static HANDLE gdb_client_socket_mutex;
+static HANDLE gdb_io_mutex;
 bool gdb_wants_step = false;
-
-static int gdb_init_socket(void) {
-	int err;
-	WSADATA wsa_data;
-	SOCKET listen_socket = INVALID_SOCKET;
-
-	err = WSAStartup(0x0202, &wsa_data);
-	if (err != 0) {
-		fxCG50gdb_printf("Unable to WSAStartup : %d\n", err);
-		return -1;
-	}
-
-	listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (listen_socket == (SOCKET)SOCKET_ERROR) {
-		fxCG50gdb_printf("Unable to open socket : %d\n", WSAGetLastError());
-		return -1;
-	}
-
-	struct sockaddr_in listen_address = {0};
-	listen_address.sin_family = AF_INET;
-	listen_address.sin_port = htoes(GDB_SERVER_PORT);
-	err = bind(listen_socket, (struct sockaddr*)&listen_address, sizeof(listen_address));
-	if (err == SOCKET_ERROR) {
-		fxCG50gdb_printf("Unable to bind socket : %d\n", WSAGetLastError());
-		closesocket(listen_socket);
-		return -1;
-	}
-
-	err = listen(listen_socket, SOMAXCONN);
-	if (err == SOCKET_ERROR) {
-		fxCG50gdb_printf("Unable to listen socket : %d\n", WSAGetLastError());
-		closesocket(listen_socket);
-		return -1;
-	}
-
-	fxCG50gdb_printf("Listening on port %d : wating for GDB...\n", GDB_SERVER_PORT);
-
-	gdb_client_socket = accept(listen_socket, NULL, NULL);
-	if (gdb_client_socket == (SOCKET)SOCKET_ERROR) {
-		fxCG50gdb_printf("Unable to accept socket : %d\n", WSAGetLastError());
-		closesocket(listen_socket);
-		return -1;
-	}
-	closesocket(listen_socket);
-	return 0;
-}
 
 // This stupid lock should never be used but we keep it for safety
 static bool gdb_SIGINT_thread_is_running = false;
@@ -71,7 +24,7 @@ static unsigned long __stdcall gdb_SIGINT_thread(void* lpParameter) {
 	char buf;
 	fxCG50gdb_printf("gdb_SIGINT_thread : started\n");
 
-	assert(recv(gdb_client_socket, &buf, 1, MSG_PEEK) >= 1);
+	assert(gdb_io_recv(&buf, 1, READ_PEEK) >= 1);
 	if (buf == 0x03) {
 		fxCG50gdb_printf("gdb_SIGINT_thread : recv SIGINT : breaking\n");
 		gdb_wants_step = true;
@@ -89,21 +42,20 @@ static void gdb_start_SIGINT_thread(void) {
 
 static unsigned long __stdcall gdb_start_thread(void* lpParameter) {
 	(void)lpParameter;
-	assert(WaitForSingleObject(gdb_client_socket_mutex, INFINITE) == WAIT_OBJECT_0);
+	assert(WaitForSingleObject(gdb_io_mutex, INFINITE) == WAIT_OBJECT_0);
 
-	if (gdb_init_socket() < 0) {
-		WSACleanup();
+	if (gdb_io_accept() < 0) {
 		ExitProcess(-1);
 		return 0;
 	}
 
 	gdb_main(false);
-	assert(ReleaseMutex(gdb_client_socket_mutex));
+	assert(ReleaseMutex(gdb_io_mutex));
 	return 0;
 }
 
 void gdb_start(void) {
-	gdb_client_socket_mutex = CreateMutexA(NULL, FALSE, NULL);
+	gdb_io_mutex = CreateMutexA(NULL, FALSE, NULL);
 	CreateThread(NULL, 0, &gdb_start_thread, NULL, 0, NULL);
 }
 
@@ -160,7 +112,7 @@ static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 
 	// Wating for packet start
 	for (;;) {
-		read_size = recv(gdb_client_socket, &read_char, 1, MSG_WAITALL);
+		read_size = gdb_io_recv(&read_char, 1, READ_WAIT_ALL);
 		if (read_size != 1)
 			return -1;
 		if (read_char == '$')
@@ -170,7 +122,7 @@ static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	checksum = 0;
 	*packet_len = 0;
 	for (;;) {
-		read_size = recv(gdb_client_socket, &read_char, 1, MSG_WAITALL);
+		read_size = gdb_io_recv(&read_char, 1, READ_WAIT_ALL);
 		if (read_size != 1)
 			return -1;
 		if (read_char == '#')
@@ -189,7 +141,7 @@ static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	fxCG50gdb_printf("recv <- %s\n", buf);
 #endif
 
-	read_size = recv(gdb_client_socket, (char*)&read_checksum_hex, sizeof(read_checksum_hex) - 1, MSG_WAITALL);
+	read_size = gdb_io_recv((char*)&read_checksum_hex, sizeof(read_checksum_hex) - 1, READ_WAIT_ALL);
 	if (read_size != sizeof(read_checksum_hex) - 1)
 		return -1;
 	read_checksum_hex[2] = '\0';
@@ -198,11 +150,11 @@ static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	if (read_checksum != checksum) {
 		fxCG50gdb_printf("Packet checksum is invalid (%hhd != %hhd)\n", read_checksum, checksum);
 		read_char = '-';
-		send(gdb_client_socket, &read_char, 1, 0);
+		gdb_io_send(&read_char, 1);
 		return -1;
 	}
 	read_char = '+';
-	send(gdb_client_socket, &read_char, 1, 0);
+	gdb_io_send(&read_char, 1);
 	return 0;
 }
 
@@ -212,9 +164,9 @@ static int gdb_send_packet(char* buf, size_t buflen) {
 	bool err = false;
 
 	local_buf[0] = '$';
-	err |= send(gdb_client_socket, local_buf, 1, 0) != 1;
+	err |= gdb_io_send(local_buf, 1) != 1;
 	if (buf != NULL && buflen > 0) {
-		err |= send(gdb_client_socket, buf, buflen, 0) != (ssize_t)buflen;
+		err |= gdb_io_send(buf, buflen) != (ssize_t)buflen;
 		for (size_t i = 0; i < buflen; i++)
 			checksum += buf[i];
 #ifdef GDB_SEND_RECV_DEBUG
@@ -228,7 +180,7 @@ static int gdb_send_packet(char* buf, size_t buflen) {
 #endif
 
 	snprintf(local_buf, sizeof(local_buf), "#%02X", checksum);
-	err |= send(gdb_client_socket, local_buf, 3, 0) != 3;
+	err |= gdb_io_send(local_buf, 3) != 3;
 	return err ? -1 : 0;
 }
 
@@ -530,7 +482,7 @@ static int gdb_handle_non_standard(char* buf) {
 	for (size_t i = 0; i < MMU_REGION_SIZE / sizeof(uint32_t); i++) {
 		outbuf[i] = htoel(outbuf[i]);
 	}
-	int ret = send(gdb_client_socket, (void*)outbuf, MMU_REGION_SIZE, 0);
+	int ret = gdb_io_send((void*)outbuf, MMU_REGION_SIZE);
 	free(outbuf);
 	return ret == MMU_REGION_SIZE ? 0 : -1;
 }
@@ -540,7 +492,7 @@ void gdb_main(bool program_started) {
 	char buf[256];
 	size_t packet_len = 0;
 	if (program_started) {
-		assert(WaitForSingleObject(gdb_client_socket_mutex, INFINITE) == WAIT_OBJECT_0);
+		assert(WaitForSingleObject(gdb_io_mutex, INFINITE) == WAIT_OBJECT_0);
 		assert(gdb_send_signal(GDB_SIGNAL_TRAP) >= 0);
 	}
 	for (;;) {
@@ -616,7 +568,7 @@ void gdb_main(bool program_started) {
 #endif
 			case 'c':
 				if (program_started)
-					assert(ReleaseMutex(gdb_client_socket_mutex));
+					assert(ReleaseMutex(gdb_io_mutex));
 				gdb_start_SIGINT_thread();
 				return;
 

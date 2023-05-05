@@ -3,6 +3,7 @@
 
 #include <fxCG50gdb/emulator.h>
 #include <fxCG50gdb/gdb.h>
+#include <fxCG50gdb/gdb_io.h>
 #include <fxCG50gdb/main.h>
 #include <fxCG50gdb/stdio.h>
 
@@ -35,6 +36,7 @@ void* __stdcall DLDRIVERINFOCALL(void) {
 	fxCG50gdb_printf("Proxy DLDriverInfoCall f = 0x%08X, r = 0x%p\n", (uint32_t)f, r);
 
 	real_cpu_init();
+	gdb_io_init();
 	gdb_start();
 	return r;
 }
