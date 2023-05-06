@@ -562,6 +562,11 @@ void gdb_main(bool program_started) {
 				assert(gdb_handle_Zz_packet(buf) >= 0);
 				break;
 
+			case 'k':
+				fxCG50gdb_printf("Killed from debugger");
+				ExitProcess(0);
+				break;
+
 #ifdef GDB_NON_STANDARD_FEATURES
 			case '\xFF':
 				assert(gdb_handle_non_standard(buf) >= 0);
