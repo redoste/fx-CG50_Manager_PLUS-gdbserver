@@ -113,8 +113,10 @@ static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	// Wating for packet start
 	for (;;) {
 		read_size = gdb_io_recv(&read_char, 1, READ_WAIT_ALL);
-		if (read_size != 1)
+		if (read_size != 1) {
+			fxCG50gdb_printf("Packet prelude read failed : %d\n", read_size);
 			return -1;
+		}
 		if (read_char == '$')
 			break;
 	}
@@ -123,8 +125,10 @@ static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 	*packet_len = 0;
 	for (;;) {
 		read_size = gdb_io_recv(&read_char, 1, READ_WAIT_ALL);
-		if (read_size != 1)
+		if (read_size != 1) {
+			fxCG50gdb_printf("Packet data read failed : %d\n", read_size);
 			return -1;
+		}
 		if (read_char == '#')
 			break;
 		if (*packet_len >= buf_len) {
@@ -142,8 +146,10 @@ static int gdb_recv_packet(char* buf, size_t buf_len, size_t* packet_len) {
 #endif
 
 	read_size = gdb_io_recv((char*)&read_checksum_hex, sizeof(read_checksum_hex) - 1, READ_WAIT_ALL);
-	if (read_size != sizeof(read_checksum_hex) - 1)
+	if (read_size != sizeof(read_checksum_hex) - 1) {
+		fxCG50gdb_printf("Packet checksum read failed : %d\n", read_size);
 		return -1;
+	}
 	read_checksum_hex[2] = '\0';
 	read_checksum = (unsigned char)strtol(read_checksum_hex, NULL, 16);
 
