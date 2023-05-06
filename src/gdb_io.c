@@ -89,8 +89,117 @@ static ssize_t gdb_io_tcp_send(const char* buffer, size_t buffer_size) {
 	return send(gdb_io_tcp_socket, buffer, buffer_size, 0);
 }
 
+static HANDLE gdb_io_peek_buffer_mutex;
+char gdb_io_peek_buffer[16];
+size_t gdb_io_peek_buffer_size = 0;
+
+static HANDLE gdb_io_com_handle;
+static int gdb_io_com_accept(void) {
+	wchar_t filename[16];
+	_snwprintf(filename, sizeof(filename) / sizeof(filename[0]), L"\\\\.\\%ls", gdb_io_current_interface_options);
+	/*
+	 * NOTE : We need to use Overlapped I/O to be able to read and write at the same time from the same handle
+	 *        (ref : https://learn.microsoft.com/en-us/previous-versions/ff802693(v=msdn.10)#overlapped-io)
+	 */
+	gdb_io_com_handle =
+		CreateFileW(filename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+
+	if (gdb_io_com_handle == INVALID_HANDLE_VALUE) {
+		fxCG50gdb_printf("Unable to open \"%ls\" : %lu\n", filename, GetLastError());
+		return -1;
+	}
+
+	fxCG50gdb_printf("Handle to \"%ls\" opened\n", filename);
+
+	gdb_io_peek_buffer_mutex = CreateMutexA(NULL, FALSE, NULL);
+	assert(gdb_io_peek_buffer_mutex != NULL);
+	return 0;
+}
+
+static ssize_t gdb_io_com_internal_read(char* buffer, size_t buffer_size) {
+	HANDLE event = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (event == NULL) {
+		return -1;
+	}
+
+	OVERLAPPED overlapped;
+	overlapped.Offset = 0;
+	overlapped.OffsetHigh = 0;
+	overlapped.hEvent = event;
+
+	DWORD read_bytes;
+	ReadFile(gdb_io_com_handle, buffer, buffer_size, &read_bytes, &overlapped);
+
+	assert(WaitForSingleObject(event, INFINITE) == WAIT_OBJECT_0);
+	bool ret = GetOverlappedResult(gdb_io_com_handle, &overlapped, &read_bytes, TRUE);
+	CloseHandle(event);
+
+	return ret ? (ssize_t)read_bytes : -1;
+}
+
+// TODO : Implement better READ_PEEK support : currently it assumes only small and non consecutive peeks
+static ssize_t gdb_io_com_recv(char* buffer, size_t buffer_size, enum gdb_io_read_mode read_mode) {
+	assert(WaitForSingleObject(gdb_io_peek_buffer_mutex, INFINITE) == WAIT_OBJECT_0);
+	assert(read_mode == READ_WAIT_ALL || read_mode == READ_PEEK);
+
+	if (gdb_io_peek_buffer_size > 0) {
+		assert(buffer_size <= gdb_io_peek_buffer_size);
+		fxCG50gdb_printf("com peek buffer read : %zu : 0x%02hhx\n", gdb_io_peek_buffer_size,
+				 gdb_io_peek_buffer[0]);
+		memcpy(buffer, gdb_io_peek_buffer, buffer_size);
+		if (read_mode == READ_WAIT_ALL) {
+			gdb_io_peek_buffer_size = 0;
+			fxCG50gdb_printf("com peek buffer drained : %zu\n", gdb_io_peek_buffer_size);
+		}
+		assert(ReleaseMutex(gdb_io_peek_buffer_mutex));
+		return buffer_size;
+	}
+
+	size_t total_read = 0;
+	while (total_read < buffer_size) {
+		ssize_t ret = gdb_io_com_internal_read(buffer + total_read, buffer_size - total_read);
+		if (ret > 0) {
+			total_read += ret;
+		} else {
+			assert(ReleaseMutex(gdb_io_peek_buffer_mutex));
+			return -1;
+		}
+	}
+
+	if (read_mode == READ_PEEK) {
+		assert(gdb_io_peek_buffer_size == 0 && buffer_size < sizeof(gdb_io_peek_buffer));
+		memcpy(gdb_io_peek_buffer, buffer, buffer_size);
+		gdb_io_peek_buffer_size = buffer_size;
+		fxCG50gdb_printf("com peek buffer filled : %zu : 0x%02hhx\n", gdb_io_peek_buffer_size,
+				 gdb_io_peek_buffer[0]);
+	}
+	assert(ReleaseMutex(gdb_io_peek_buffer_mutex));
+	return total_read;
+}
+
+static ssize_t gdb_io_com_send(const char* buffer, size_t buffer_size) {
+	HANDLE event = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (event == NULL) {
+		return -1;
+	}
+
+	OVERLAPPED overlapped;
+	overlapped.Offset = 0;
+	overlapped.OffsetHigh = 0;
+	overlapped.hEvent = event;
+
+	DWORD written_bytes;
+	WriteFile(gdb_io_com_handle, buffer, buffer_size, &written_bytes, &overlapped);
+
+	assert(WaitForSingleObject(event, INFINITE) == WAIT_OBJECT_0);
+	bool ret = GetOverlappedResult(gdb_io_com_handle, &overlapped, &written_bytes, TRUE);
+	CloseHandle(event);
+	return ret ? (ssize_t)written_bytes : -1;
+}
+
 static const struct gdb_io_interface gdb_io_interfaces[] = {
 	{L"tcp", gdb_io_tcp_accept, gdb_io_tcp_recv, gdb_io_tcp_send},
+	{L"com", gdb_io_com_accept, gdb_io_com_recv, gdb_io_com_send},
 };
 
 void gdb_io_init(void) {
