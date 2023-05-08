@@ -8,9 +8,12 @@
 #include <shellapi.h>
 #include <winsock2.h>
 
+#include <afunix.h>
+
 #include <fxCG50gdb/bswap.h>
 #include <fxCG50gdb/gdb_io.h>
 #include <fxCG50gdb/stdio.h>
+#include <fxCG50gdb/wine.h>
 
 typedef int (*gdb_io_accept_handler)(void);
 typedef ssize_t (*gdb_io_recv_handler)(char*, size_t, enum gdb_io_read_mode);
@@ -197,9 +200,71 @@ static ssize_t gdb_io_com_send(const char* buffer, size_t buffer_size) {
 	return ret ? (ssize_t)written_bytes : -1;
 }
 
+static int gdb_io_wine_unix_socket;
+static int gdb_io_wine_accept(void) {
+	int err;
+	int listen_socket;
+
+	fxCG50gdb_printf(
+		"fxCG50gdb is now about to call `int 0x80` : This will crash on real Windows (i.e. not Wine on "
+		"*/Linux)\n");
+	listen_socket = wine_socket(AF_UNIX, SOCK_STREAM, 0);
+	if (listen_socket < 0) {
+		fxCG50gdb_printf("Unable to open socket : %d\n", listen_socket);
+		return -1;
+	}
+
+	struct sockaddr_un listen_address = {
+		.sun_family = AF_UNIX,
+		.sun_path = {0},
+	};
+	err = WideCharToMultiByte(CP_UTF8, 0, gdb_io_current_interface_options, -1, listen_address.sun_path,
+				  sizeof(listen_address.sun_path), NULL, NULL);
+	if (err <= 0) {
+		fxCG50gdb_printf("Unable to convert to UTF-8 socket path \"%ls\" : %lu\n",
+				 gdb_io_current_interface_options, GetLastError());
+	}
+
+	err = wine_bind(listen_socket, (struct sockaddr*)&listen_address, sizeof(listen_address));
+	if (err < 0) {
+		fxCG50gdb_printf("Unable to bind socket : %d\n", err);
+		wine_close(listen_socket);
+		return -1;
+	}
+
+	err = wine_listen(listen_socket, SOMAXCONN);
+	if (err < 0) {
+		fxCG50gdb_printf("Unable to listen socket : %d\n", err);
+		wine_close(listen_socket);
+		return -1;
+	}
+
+	fxCG50gdb_printf("Listening on unix socket \"%s\" : wating for GDB...\n", listen_address.sun_path);
+
+	gdb_io_wine_unix_socket = wine_accept4(listen_socket, NULL, NULL, 0);
+	if (gdb_io_wine_unix_socket < 0) {
+		fxCG50gdb_printf("Unable to accept socket : %d\n", gdb_io_wine_unix_socket);
+		wine_close(listen_socket);
+		return -1;
+	}
+	wine_close(listen_socket);
+	return 0;
+}
+
+static ssize_t gdb_io_wine_recv(char* buffer, size_t buffer_size, enum gdb_io_read_mode read_mode) {
+	assert(read_mode == READ_WAIT_ALL || read_mode == READ_PEEK);
+	int flags = read_mode == READ_WAIT_ALL ? WINE_MSG_WAITALL : WINE_MSG_PEEK;
+	return wine_recvfrom(gdb_io_wine_unix_socket, buffer, buffer_size, flags, NULL, 0);
+}
+
+static ssize_t gdb_io_wine_send(const char* buffer, size_t buffer_size) {
+	return wine_sendto(gdb_io_wine_unix_socket, buffer, buffer_size, 0, NULL, 0);
+}
+
 static const struct gdb_io_interface gdb_io_interfaces[] = {
 	{L"tcp", gdb_io_tcp_accept, gdb_io_tcp_recv, gdb_io_tcp_send},
 	{L"com", gdb_io_com_accept, gdb_io_com_recv, gdb_io_com_send},
+	{L"wine", gdb_io_wine_accept, gdb_io_wine_recv, gdb_io_wine_send},
 };
 
 void gdb_io_init(void) {
