@@ -59,7 +59,18 @@ Binaires are built by *GitHub Actions* and avaliable in [releases](https://githu
 ## Usage :
 * Rename `CPU73050.dll` to `CPU73050.real.dll` in fx-CG50 Manager PLUS installation folder
 * Copy the new `CPU73050.dll` in the same folder
-* When starting fx-CG50 Manager PLUS, connect with GDB to port 31188
+* When starting fx-CG50 Manager PLUS, connect with GDB via your interface of choice
+
+## GDB Interfaces :
+*fx-CG50 Manager PLUS - gdbserver* provides 3 ways to connect to the debugger. You can select one by adding the following argument to `fx-CG_Manager_PLUS_Subscription_for_fx-CG50series.exe` command line : `/gdb:[interface name]:[interface options]`.
+
+|Name  |Option|Description                                                     |
+|------|------|----------------------------------------------------------------|
+|`tcp` |port  |TCP socket listening on IPv4 `0.0.0.0` with the specified port  |
+|`com` |`COMn`|Serial port `COMn`                                              |
+|`wine`|path  |Unix socket when *fxCG50gdb* is running through Wine on \*/Linux|
+
+For some reason the `tcp` interface seems to be pretty slow. We recommand using `com` or `wine` when possible.
 
 ## Major Issues :
 This software is still in development, many problems remain.
