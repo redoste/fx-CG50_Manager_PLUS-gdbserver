@@ -241,15 +241,73 @@ static int gdb_send_registers(void) {
 	return gdb_send_packet(buf, sizeof(buf) - 1);
 }
 
+#define B1_USED(SR) (((SR) & (1 << 29) /* RB */) && ((SR) & (1 << 30) /* MD */))
+#define B0REG(EMUR, NAME) (B1_USED(EMUR->sr) ? &EMUR->NAME##_other_bank : &EMUR->NAME)
+#define B1REG(EMUR, NAME) (B1_USED(EMUR->sr) ? &EMUR->NAME : &EMUR->NAME##_other_bank)
+
 // See sh_sh4_nofpu_register_name in gdb/sh-tdep.c in GDB source code
-#define GDB_REGISTER_ID_MAPPING(EMUR, NAME)                                                                      \
-	uint32_t* NAME[] = {&EMUR->r0,	 &EMUR->r1,  &EMUR->r2, &EMUR->r3,  &EMUR->r4,	&EMUR->r5,  &EMUR->r6,   \
-			    &EMUR->r7,	 &EMUR->r8,  &EMUR->r9, &EMUR->r10, &EMUR->r11, &EMUR->r12, &EMUR->r13,  \
-			    &EMUR->r14,	 &EMUR->r15, &EMUR->pc, &EMUR->pr,  &EMUR->gbr, &EMUR->vbr, &EMUR->mach, \
-			    &EMUR->macl, &EMUR->sr,  NULL,	NULL,	    NULL,	NULL,	    NULL,        \
-			    NULL,	 NULL,	     NULL,	NULL,	    NULL,	NULL,	    NULL,        \
-			    NULL,	 NULL,	     NULL,	NULL,	    NULL,	NULL,	    &EMUR->ssr,  \
-			    &EMUR->spc}
+#define GDB_REGISTER_ID_MAPPING(EMUR, NAME) \
+	uint32_t* NAME[] = {                \
+		&EMUR->r0,                  \
+		&EMUR->r1,                  \
+		&EMUR->r2,                  \
+		&EMUR->r3,                  \
+		&EMUR->r4,                  \
+		&EMUR->r5,                  \
+		&EMUR->r6,                  \
+		&EMUR->r7,                  \
+		&EMUR->r8,                  \
+		&EMUR->r9,                  \
+		&EMUR->r10,                 \
+		&EMUR->r11,                 \
+		&EMUR->r12,                 \
+		&EMUR->r13,                 \
+		&EMUR->r14,                 \
+		&EMUR->r15,                 \
+		&EMUR->pc,                  \
+		&EMUR->pr,                  \
+		&EMUR->gbr,                 \
+		&EMUR->vbr,                 \
+		&EMUR->mach,                \
+		&EMUR->macl,                \
+		&EMUR->sr,                  \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		NULL,                       \
+		&EMUR->ssr,                 \
+		&EMUR->spc,                 \
+		B0REG(EMUR, r0),            \
+		B0REG(EMUR, r1),            \
+		B0REG(EMUR, r2),            \
+		B0REG(EMUR, r3),            \
+		B0REG(EMUR, r4),            \
+		B0REG(EMUR, r5),            \
+		B0REG(EMUR, r6),            \
+		B0REG(EMUR, r7),            \
+		B1REG(EMUR, r0),            \
+		B1REG(EMUR, r1),            \
+		B1REG(EMUR, r2),            \
+		B1REG(EMUR, r3),            \
+		B1REG(EMUR, r4),            \
+		B1REG(EMUR, r5),            \
+		B1REG(EMUR, r6),            \
+		B1REG(EMUR, r7),            \
+	}
 
 static int gdb_handle_p_packet(char* buf) {
 	buf++;
