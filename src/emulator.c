@@ -37,17 +37,20 @@ void** real_cpu_jti_table_wtmmu_backup;
 static void real_cpu_hijack_jmp_to_instruction(void) {
 	void*** jti_table_nommu = (void***)((uint8_t*)real_cpu_dll + real_dll_jmp_to_instruction_table_nommu_off);
 	void*** jti_table_wtmmu = (void***)((uint8_t*)real_cpu_dll + real_dll_jmp_to_instruction_table_wtmmu_off);
-	// We erase the functions pointers used by the emulator when SR.MD = 0 since this shouldn't happen in CASIOWIN
-	for (size_t i = 0; i < real_dll_jmp_to_instruction_table_amount; i++) {
-		jti_table_nommu[0][i] = (void*)(0xDEADC0DE);
-		jti_table_wtmmu[0][i] = (void*)(0xDEADC0DE);
-	}
-	real_cpu_jti_table_nommu_backup = malloc(sizeof(void*) * real_dll_jmp_to_instruction_table_amount);
-	memcpy(real_cpu_jti_table_nommu_backup, jti_table_nommu[1],
-	       sizeof(void*) * real_dll_jmp_to_instruction_table_amount);
-	real_cpu_jti_table_wtmmu_backup = malloc(sizeof(void*) * real_dll_jmp_to_instruction_table_amount);
-	memcpy(real_cpu_jti_table_wtmmu_backup, jti_table_wtmmu[1],
-	       sizeof(void*) * real_dll_jmp_to_instruction_table_amount);
+
+	/* We used to erase the function pointers used by the emulator when SR.MD = 0 since CASIOWIN stays in
+	 * privileged mode, but now that we support it we backup both function tables
+	 */
+
+	const size_t backup_size = sizeof(void*) * real_dll_jmp_to_instruction_table_amount;
+
+	real_cpu_jti_table_nommu_backup = malloc(backup_size * 2);
+	memcpy(real_cpu_jti_table_nommu_backup, jti_table_nommu[0], backup_size);
+	memcpy((uint8_t*)real_cpu_jti_table_nommu_backup + backup_size, jti_table_nommu[1], backup_size);
+
+	real_cpu_jti_table_wtmmu_backup = malloc(backup_size * 2);
+	memcpy(real_cpu_jti_table_wtmmu_backup, jti_table_wtmmu[0], backup_size);
+	memcpy((uint8_t*)real_cpu_jti_table_wtmmu_backup + backup_size, jti_table_wtmmu[1], backup_size);
 
 	const uint8_t jmp_slide[] = {
 		0x31, 0xC0,		       // xor eax, eax
@@ -57,19 +60,27 @@ static void real_cpu_hijack_jmp_to_instruction(void) {
 	};
 	const size_t jmp_slide_al_index = 3;
 	const size_t jmp_slide_addr_index = 5;
-	const size_t slide_size = sizeof(jmp_slide) * real_dll_jmp_to_instruction_table_amount * 2;
+	const size_t slide_size = sizeof(jmp_slide) * real_dll_jmp_to_instruction_table_amount * 4;
 
 	uint8_t* slide = VirtualAlloc(NULL, slide_size, MEM_COMMIT, PAGE_READWRITE);
 	uint8_t* a = slide;
 	for (size_t i = 0; i < real_dll_jmp_to_instruction_table_amount; i++) {
-		for (size_t j = 0; j < 2; j++) {
+		/* j & 1 : no mmu or with mmu
+		 * j & 2 : user mode or privileged mode
+		 */
+		for (size_t j = 0; j < 4; j++) {
 			memcpy(a, jmp_slide, sizeof(jmp_slide));
-			a[jmp_slide_al_index] = (uint8_t)((j << 7) | (i & 0xFF));
+
+			size_t backup_index = i + ((j & 2) ? real_dll_jmp_to_instruction_table_amount : 0);
+			a[jmp_slide_al_index] = (uint8_t)(((j & 1) << 7) | (backup_index & 0x7F));
+
 			*((uint32_t*)&a[jmp_slide_addr_index]) = (uint32_t)&break_jti_handler;
-			if (j)
-				jti_table_wtmmu[1][i] = a;
+
+			if (j & 1)
+				jti_table_wtmmu[(j & 2) >> 1][i] = a;
 			else
-				jti_table_nommu[1][i] = a;
+				jti_table_nommu[(j & 2) >> 1][i] = a;
+
 			a += sizeof(jmp_slide);
 		}
 	}
