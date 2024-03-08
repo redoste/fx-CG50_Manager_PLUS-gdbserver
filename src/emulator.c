@@ -118,6 +118,10 @@ uint32_t real_cpu_mmucr(void) {
 	return *(uint32_t*)((uint8_t*)real_cpu_dll + real_dll_mmucr_off);
 }
 
+uint32_t real_cpu_pteh(void) {
+	return *(uint32_t*)((uint8_t*)real_cpu_dll + real_dll_pteh_off);
+}
+
 struct mmu_region* real_cpu_mmu_regions(void) {
 	return (struct mmu_region*)((uint8_t*)real_cpu_dll + real_dll_mmu_regions_off);
 }

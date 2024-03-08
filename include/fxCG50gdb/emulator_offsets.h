@@ -9,6 +9,7 @@
 
 static const size_t real_dll_registers_off = 0x675918;
 static const size_t real_dll_mmucr_off = 0x67be88;
+static const size_t real_dll_pteh_off = 0x67be78;
 static const size_t real_dll_mmu_regions_off = 0xcefe0;
 static const size_t real_dll_mmu_regions_p4_off = 0x371020;
 static const size_t real_dll_mmu_no_translation_table = 0x34f3b8;

@@ -6,6 +6,7 @@ extern _real_cpu_translate_address_ptr
 ; uint32_t mmu_translate_address_real_context(uint32_t virtual_address);
 global _mmu_translate_address_real_context
 _mmu_translate_address_real_context:
+	mov ebx, [esp + 8]
 	mov eax, [esp + 4]
 	pushad
 
@@ -13,8 +14,7 @@ _mmu_translate_address_real_context:
 	mov ebp, 0xA0000000 ; Emulated CPU PC
 	mov edi, 0xDEADC0DE ; Pointer to current instruction in host's address space
 
-	mov ebx, [_real_cpu_translate_address_ptr]
-	call ebx
+	call [_real_cpu_translate_address_ptr]
 	mov [eax_backup], eax
 
 	popad

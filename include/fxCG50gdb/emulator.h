@@ -88,6 +88,7 @@ void real_cpu_init(void);
 real_DLDriver real_DLDriverInfo(void);
 real_DLDriver real_DLDriverInfoCall(void);
 uint32_t real_cpu_mmucr(void);
+uint32_t real_cpu_pteh(void);
 struct mmu_region* real_cpu_mmu_regions(void);
 struct mmu_region* real_cpu_mmu_regions_p4(void);
 uint32_t* real_cpu_mmu_no_translation_table(void);

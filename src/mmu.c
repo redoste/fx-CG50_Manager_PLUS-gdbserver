@@ -25,7 +25,7 @@ uint32_t mmu_translate_address(uint32_t virtual_address) {
 	if (no_mmu) {
 		ret = real_cpu_mmu_no_translation_table()[virtual_address >> 0x18] | (virtual_address & 0xffffff);
 	} else {
-		ret = mmu_translate_address_real_context(virtual_address);
+		ret = mmu_translate_address_real_context(virtual_address, real_cpu_pteh() & 0xff);
 	}
 #ifdef MMU_DEBUG
 	fxCG50gdb_printf("mmu_translate_address : va=0x%08X pa=0x%08X mmucr_at=%d no_mmu=%d\n", virtual_address, ret,

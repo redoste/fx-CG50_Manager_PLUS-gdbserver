@@ -23,7 +23,7 @@ struct mmu_region {
 
 struct mmu_region* mmu_get_region(uint32_t physical_address);
 uint32_t mmu_translate_address(uint32_t virtual_address);
-uint32_t mmu_translate_address_real_context(uint32_t virtual_address);
+uint32_t mmu_translate_address_real_context(uint32_t virtual_address, uint8_t asid);
 uint32_t mmu_rw_dword_real_context(uint32_t virtual_address,
 				   uint32_t physical_address,
 				   uint32_t value,
